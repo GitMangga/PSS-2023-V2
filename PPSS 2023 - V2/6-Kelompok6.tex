@@ -1,0 +1,919 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage{graphicx, amsthm, enumerate, parskip}
+\usepackage{amsmath, amssymb, amsthm}
+\theoremstyle{definition}
+\newtheorem{definition}{Definisi}[section]
+\newtheorem{theorem}{Teorema}[section]
+\newtheorem{example}{Contoh}[section]
+\usepackage{listings, fancyvrb, spverbatim, xcolor}
+\lstset{% setup listings
+    language=R,% set programming language
+    frame=tb,
+    basicstyle=\ttfamily\small,% basic font style
+    keywordstyle=\color{blue},% keyword style
+    commentstyle=\color{gray},% comment style
+    breaklines=true,% automatic line breaking
+    fancyvrb=true,% verbatim code is typset by listings
+}
+\usepackage[
+    backend=biber,
+    style=bwl-FU,
+    sorting=nyt,
+    maxbibnames=99,
+    natbib=true,
+]
+{biblatex}
+\addbibresource{DPustaka.bib}
+
+
+
+%% ---------------------------
+\begin{document}
+    \title{Metode Monte Carlo dalam Inferensi}
+    \author{Indraswari Prasetyaningtyas 4112321018\\
+    Dimas Widhiatmoko 4112321025\\
+    }
+\date{\today}
+\begin{titlepage}
+    \maketitle
+\end{titlepage}
+
+\section{Pendahuluan}
+Metode Monte Carlo mencakup seperangkat alat komputasi yang luas dalam statistik terapan modern. Integrasi Monte Carlo diperkenalkan di Bab 6. Metode Monte Carlo dapat merujuk pada metode apa pun dalam inferensi statistik atau analisis numerik di mana simulasi digunakan. Namun, dalam bab ini hanya a Subset dari metode ini dibahas. Bab ini memperkenalkan beberapa Metode Monte Carlo untuk inferensi statistik. Metode Monte Carlo bisa diterapkan untuk memperkirakan parameter distribusi sampel statistik, mean squared error (MSE), persentil, atau jumlah bunga lainnya. Monte Studi Carlo dapat dirancang untuk menilai probabilitas cakupan untuk kepercayaan diri interval, untuk menemukan tingkat kesalahan Tipe I empiris dari prosedur pengujian, untuk memperkirakan kekuatan tes, dan untuk membandingkan kinerja prosedur yang berbeda untuk masalah tertentu.
+
+Dalam inferensi statistik ada ketidakpastian dalam perkiraan. Metode dibahas dalam bab ini menggunakan pengambilan sampel berulang dari model probabilitas tertentu, kadang-kadang disebut bootstrap parametrik, untuk menyelidiki ketidakpastian ini. Jika kita dapat mensimulasikan proses stokastik yang menghasilkan data kami, berulang kali menggambar sampel dalam kondisi yang sama, maka pada akhirnya kami berharap memiliki replika dekat dari proses itu sendiri tercermin dalam sampel. Monte Carlo lainnya metode, seperti bootstrap (nonparametrik), didasarkan pada resampling dari sampel yang diamati. Metode resampling dibahas dalam Bab 8 dan 10. Integrasi Monte Carlo dan metode Markov Chain Monte Carlo tercakup dalam Pasal 6 dan 11. Metode untuk menghasilkan variates acak dari yang ditentukan distribusi probabilitas tercakup dalam Bab 3. Lihat referensi di Bagian 6.1 mengenai beberapa sejarah awal metode Monte Carlo, dan untuk umum referensi lihat misalnya [68, 91, 119, 240, 256]. 
+
+\begin{equation*}
+    f_{X|s}(x_1,x_2,...,x_n)=\left\{\begin{matrix}
+f(x_1,x_2,...,x_n;\theta), jika \ \sigma (x_1,x_2,...,x_n)=s &  & \\ 
+0, yang \ lainnya&  & 
+\end{matrix}\right.
+\end{equation*}
+
+\section{Metode Monte Carlo untuk Estimasi}
+Kira $X_{1},...X_{n}$ adalah sampel acak dari distribusi $X$. Sebuah estimator $\hat{\theta}$ untuk parameter $\hat{\theta}$ adalah fungsi $\eta$ Fungsi variate.
+
+\begin{equation*}
+     \hat{\theta} = \hat{\theta} \left ( X_{1},....,X_{n}\right )
+\end{equation*}
+
+dari sampel. Fungsi penaksir $\hat{\theta}$ oleh karena itu $\eta$-fungsi variate dari datanya, juga. Untuk kesederhanaan, misalkan $x = \left ( x_{1}, ..., x_{n} \right )^{\tau}\epsilon\mathbb{R}^{n},$ dan misalkan $x^{(1)}, x^{(2)}, ...$ menunjukkan urutan sampel acak independen yang dihasilkan dari distribusi $X$. Variat acak dari distribusi sampling $\hat{\theta}$ bisa jadi dihasilkan dengan berulang kali menggambar sampel acak independen $x^{\left ( j \right )}$ dan komputasi $\hat{\theta} ^{\left ( j \right )} \doteq  \hat{\theta} (x_{1}^{(j)},...,x_{n}^{(j)})$ untuk setiap sampel. 
+
+\subsection{Estimasi Monte Carlo dan Standard Error}
+
+\begin{example}
+    (Perkiraan dasar Monte Carlo). Misalkan $X_{1},X_{2} $ adalah IID dari distribusi normal standar. Perkirakan perbedaan rata-rata $E\left | X_{1}-X_{2} \right |$. Untuk mendapatkan perkiraan Monte Carlo $\hat{\theta} = E\left [ g\left ( X_{1},X_{2} \right ) \right ] = E\left | X_{1}-X_{2} \right |$ berdasarkan m mereplikasi, menghasilkan sampel acak $x^{(j)} = (x^{(j)}_{1}-x^{(j)}_{2})$ ukuran 2 dari distribusi normal standar, $j=1,...,m$. Kemudian menghitung replikasi $\hat{\theta} ^{(j)} = g_{j}(x_{1},x_{2})=\left | x^{(j)}_{1}-x^{(j)}_{2} \right |, j = 1,...,m,$  dan rata-rata replikasi 
+\end{example}
+
+\begin{equation*}
+    \hat{\theta} = \frac{1}{m}\sum_{i=1}^{m}\hat{\theta} ^{(j)}=\frac{}{g(X_{1},X_{2})}=\frac{1}{m}\sum_{i=1}^{m}\left | x^{(j)}_{1}-x^{(j)}_{2} \right |.
+\end{equation*}
+
+Ini mudah diterapkan, seperti yang ditunjukkan di bawah ini.
+
+\begin{spverbatim}
+    m <- 1000
+    g <- numeric(m)
+    for (i in 1:m) {
+         x <- rnorm(2)
+         g[i] <- abs(x[1] - x[2])
+    }
+    est <- mean(g)
+\end{spverbatim}
+Satu eksekusi menghasilkan perkiraan berikut.
+
+ \begin{spverbatim}
+     > est
+     [1] 1.128402
+ \end{spverbatim}
+
+Seseorang dapat memperoleh dengan integrasi yang $E\left | X_{1}-X_{2} = 2/\sqrt{\pi}= 1.128379 \right |$ dan $Var \left ( \left | X_{1}-X_{2} \right |\right ) = 2-4/\pi.$  Dalam contoh ini kesalahan standar perkiraan adalah $\sqrt{(2-4/\pi )/m}=0.02695850$ 
+
+\textbf{Memperkirakan kesalahan standar rata-rata}
+
+Kesalahan standar rata-rata $\overline{X}$ dari ukuran sampel $n$ adalah $\sqrt{Var(X)/n}$. Saat distribusi $X$ tidak diketahui, kita bisa menggantinya $F$ the empirical distribution $F_{n}$ dari sampel $x_{1},...,x_{n}$. Perkiraan "plug-in" dari varians
+dari $X$ adalah
+\begin{equation}
+    \widehat{Var}(x)=\frac{1}{n}\sum_{i=1}^{n}(x_{i}-\bar{x})^{2}
+\end{equation}
+Perhatikan bahwa $ \widehat{Var}(x)$ adalah varians populasi dari populasi semu yang terbatas {$x_{1}$,...,$x_{n}$} dengan fungsi distribusi kumulatif $F_{n}$. Perkiraan yang sesuai dari kesalahan standar $\bar{x}$ adalah 
+\begin{equation}
+    \hat{se}(\bar{x})=\frac{1}{\sqrt{n}}\left \{ \frac{1}{n}\sum_{i=1}^{n}(x_{i}-\bar{x})^{2}\right \}^{\frac{1}{2}}= \frac{1}{n}\left \{ \frac{1}{n}\sum_{i=1}^{n}(x_{i}-\bar{x})^{2}\right\}^{\frac{1}{2}}
+\end{equation}
+Menggunakan penaksir Var(X) yang tidak bias yang kita miliki
+\begin{equation}
+    \hat{se}(\bar{x})=\frac{1}{\sqrt{n}}\left \{ \frac{1}{n-1}\sum_{i=1}^{n}(x_{i}-\bar{x})^{2}\right \}^{\frac{1}{2}}
+\end{equation}
+Dalam eksperimen Monte Carlo,Ukuran sampel besar dan dua perkiraan kesalahan standar kira-kira sama.
+
+Dalam Contoh 7.1 ukuran sampel adalah m (jumlah replikasi dari $\hat{\theta}$),dan perkiraan kesalahan standar dari $\hat{\theta}$) adalah
+
+\begin{spverbatim}
+    sqrt(sum((g - mean(g))^2))/m
+    0.02708121
+\end{spverbatim}
+
+Dalam Contoh 7.1 kita memiliki nilai yang tepat $se(\hat{\theta})=\sqrt{(2-4/\pi)/m}=0.02695850$ untuk perbandingan.
+
+\subsection{Estimasi MSE}
+Metode Monte Carlo dapat diterapkan untuk memperkirakan MSE dari seorang penaksir. ingatlah bahwa MSE penaksir$\hat{\theta}$ untuk parameter $\hat{\theta}$ didefinisikan oleh MSE $\left ( \hat{\theta } \right )= E \left [ (\hat{\theta}-\hat{\theta})^{2} \right]$. kalau m (pseudo) sampel acak $x^{(1)},...,x^{(m)}$ dihasilkan dari distribusi $X$,  kemudian perkiraan Monte Carlo tentang MSE $\hat{\theta}=\hat{\theta}(x_{1},...,x_{n})$ 
+\begin{align*}
+    \widehat{MSE} = \frac{1}{M}\sum_{j=1}^{m}(\hat{\theta^{(j)}}-\theta)^{2}
+\end{align*}
+dimana $\hat{\theta^{(j)}}=\hat{\theta}(x_{1}^{(j)},...,x_{n}^{(j)})$
+\begin{example}
+    (Memperkirakan MSE dari rata-rata yang dipangkas).Rata-rata yang dipangkas kadang-kadang diterapkan untuk memperkirakan pusat simetris kontinu distribusi yang belum tentu normal. Dalam contoh ini, kami menghitung perkiraan MSE dari rata-rata yang dipangkas. Misalkan $X_{1},...,X_{n}$ adalah sampel acak dan $X_{(1)},...,X_{(n)}$ adalah sampel pesanan yang sesuai.Rata-rata sampel yang dipangkas dihitung dengan rata-rata semua kecuali pengamatan sampel terbesar dan terkecil. Lebih umum, $k^{th}$ rata-rata sampel yang dipangkas level ditentukan
+oleh
+\end{example}
+\begin{align*}
+    \overline{X}\left [ -k \right ]=\frac{1}{n-2k}\sum_{i=k+1}^{n-k}X\left ( i \right ).
+\end{align*}
+Dapatkan perkiraan Monte Carlo dari MSE $(\overline{X}_{\left [ -1 \right ]})$dari tingkat pertama dipangkas berarti dengan asumsi bahwa distribusi sampel adalah normal standar.
+In this example, the center of the distribution is $0$ and the target parameter is $\theta =E\left [ \overline{X}_{\left [ -1 \right ]} \right ]=0$. Kami akan menunjukkan sampel yang dipangkas tingkat pertama yang dimaksud dengan $T.A$Perkiraan Monte Carlo tentang MSE (T) berdasarkan $m$ Replikasi dapat diperoleh sebagai berikut.
+\begin{enumerate}
+    \item Menghasilkan replikasi $T^{(j)}, j=1...,m$ dengan mengulangi:
+    \begin{enumerate}
+        \item Menghasilkan $x^{(j)}_{1},...,x^{(j)}_{n},$ idd dari distribusi$X$.
+        \item jenis $x^{(j)}_{1},....,x^{(j)}_{n}$dalam urutan yang meningkat, untuk mendapatkan $x^{(j)}_{(1)}\leq ...\leq x^{(j)}_{(n)}$
+        \item menghitung $T^{(j)}=\frac{1}{n-2}\sum_{i=2}^{n-1}x^{(j)}_{(i)}$
+    \end{enumerate}
+    \item menghitung $\widehat{MSE}\left ( T \right )=\frac{1}{m}\sum_{j=1}^{m}(T^{(j)}-\theta )^{2}=\frac{1}{m}\sum_{j=1}^{m}(T^{(j)})^{2}$
+\end{enumerate}
+kemudian $T^{(1)},...,T^{(m)}$ independen dan didistribusikan secara identik sesuai dengan distribusi sampel dari rata-rata level-1 yang dipangkas untuk distribusi normal standar, dan kami menghitung perkiraan rata-rata sampel $\widehat{MSE}(T)$ dari $MSE(T)$ Prosedur ini dapat diimplementasikan dengan menulis for loop seperti yang ditunjukkan di bawah ini (replikasi dapat menggantikan loop; lihat Catatan R 7.2.3) 
+
+\begin{spverbatim}
+    n <- 20
+    m <- 1000
+    tmean <- numeric(m)
+    for (i in 1:m) {
+         x <- sort (rnorm(n))
+         tmean[i] <- sum(x[2:(n-1)])/(n-2)
+    }
+    mse <- mean(tmean^2)
+
+    > mse
+    [1] 0.05176437
+    > sqrt(sum((tmean - mean(tmean))^2)) / m #se
+    [1] 0.007193428
+\end{spverbatim}
+
+Perkiraan MSE untuk rata-rata yang dipangkas dalam proses ini kira-kira $0.052 (\widehat{se}=0.007)$. Sebagai perbandingan, MSE dari rata-rata sampel $\overline{X}$ sedangkan $Var(X)/n$, yaitu 1/20 = 0.05 dalam contoh ini. Perhatikan bahwa median sebenarnya adalah rata-rata yang dipangkas; itu memangkas semua kecuali satu atau dua pengamatan. Simulasi diulang untuk median di bawah ini.
+
+\begin{spverbatim}
+    n <- 20
+    m <- 1000
+    tmean <- numeric(m)
+    for (i in 1:m) {
+         x <- sort(rnorm(n))
+         tmean[i] <- median(x)
+    }
+
+    >mse
+    [1] 0,07483438
+    >sqrt(sum((tmean - mean(tmean))^2)) / m #se
+    [1] 0.008649554
+\end{spverbatim}
+
+Perkiraan MSE untuk median sampel adalah kira-kira 0.075 dan $\widehat{se}(\widehat{MSE})=0.0086.$
+\begin{example}
+    (MSE dari rata-rata yang dipangkas, cont.). Bandingkan MSE level-k Dipangkas berarti untuk normal standar dan distribusi normal "terkontaminasi". Distribusi normal yang terkontaminasi dalam contoh ini adalah campuran.
+\end{example}
+\begin{align}
+    pN(0,\sigma^{2}=1)+(1-p)N(0,\sigma ^{2}=100)
+\end{align}
+Parameter target adalah rata-rata, $\theta=0$. (Contoh ini berasal dari [69, 9.7].)
+
+Menulis fungsi untuk memperkirakan MSE$(\overline{X}_{\left [ -k \right ]})$  untuk yang berbeda $k$ dan $p$. Untuk menghasilkan sampel normal yang terkontaminasi, pertama-tama pilih secara acak$\sigma$ menurut distribusi probabilitas $P(\sigma=1)=p;P(\sigma=10)=1-p$.Perhatikan bahwa generator normal rnorm dapat menerima vektor parameter untuk deviasi standar.Setelah menghasilkan nilai n untuk $\sigma$, Teruskan vektor ini sebagai argumen sd ke rnorm (lihat Contoh 3.12 dan 3.13).
+
+\begin{spverbatim}
+    n <- 20
+    k <- n/2 - 1
+    m <- 1000
+    mse <- matrix(0, n/2, 6)
+
+    trimed.mse <- function(n, m, k, p) {
+         #MC est dari mse untuk rata-rata yang dipangkas tingkat-k dari
+         #normal terkontaminasi pN(0 , 1) + (1-p)N(0,100)
+
+         tmean <- numeric(m)
+         for (i in 1:m){
+            sigma <- sampel(c(1, 10), size = n,
+                 replece = TRUE, prob = c(p, 1-p))
+            x <- sort(rnorm(n, 0, sigma))
+            tmean[i] <- sum(x[(k+1) : (n-k)] / (n-2*k)
+         }
+         mse.est <- mean(tmean^2)
+         se.mse <- sqrt(mean((tmean-mean(tmean))^2)) / sqrt(m)
+         return(c(mse.est, se.mse))
+    }
+    for (k in 0:K) {
+        mse[k+1, 1:2] <- trimmed.mse(n=n, m=m, k=k, p=1.0)
+        mse[k+1, 3:4] <- trimmed.mse(n=n, m=m, k=k, p=.95)
+        mse[k+1, 5:6] <- trimmed.mse(n=n, m=m, k=k, p=.9)
+    }
+\end{spverbatim}
+
+Hasil simulasi ditunjukkan pada Tabel 7.1.Hasil dalam tabel adalah n kali perkiraan.Perbandingan ini menunjukkan bahwa penaksir rata-rata yang kuat dapat menyebabkan berkurangnya MSE untuk sampel normal yang terkontaminasi. 
+.
+.
+.
+.
+.
+.
+.
+
+\subsection{Estimasi Interval Konfidensi}
+Salah satu jenis masalah yang sering muncul dalam aplikasi statistik adalah kebutuhan untuk mengevaluasi cdf distribusi sampel statistik,ketika fungsi kerapatan statistik tidak diketahui atau sulit dipecahkan. Misalnya, Banyak prosedur estimasi yang umum digunakan diturunkan dengan asumsi bahwa populasi sampel didistribusikan secara normal.Dalam praktiknya,sering terjadi bahwa populasi tidak normal dan dalam kasus seperti itu, Distribusi sebenarnya dari penaksir mungkin tidak diketahui atau tidak dapat diselesaikan. Contoh-contoh berikut menggambarkan metode Monte Carlo untuk menilai interval konfidensi dalam prosedur estimasi.
+
+Jika (U,V) adalah perkiraan interval kepercayaan untuk parameter yang tidak diketahui $\theta$, maka U dan V adalah statistik dengan distribusi yang bergantung pada distribusi $F_{x}$ dari populasi sampel X.Interval konfidensi adalah probabilitas bahwa interval (U, V ) mencakup nilai sebenarnya dari parameter $\theta$.Oleh karena itu, mengevaluasi interval konfidensi merupakan masalah integrasi.
+Perhatikan bahwa pendekatan sampel rata-rata Monte Carlo untuk mengevaluasi integral $\int g(x)dx$ tidak mengharuskan fungsi g(x) ditentukan.Hanya perlu bahwa sampel dari distribusi g(X) dapat dihasilkan. Hal ini sering terjadi dalam aplikasi statistik,bahwa g(x) sebenarnya tidak ditentukan,tetapi variabel g(X) mudah dihasilkan.
+
+Pertimbangkan prosedur estimasi interval konfidensi untuk varians. Sudah diketahui bahwa prosedur ini sensitif terhadap penyimpangan ringan dari normalitas. Kami menggunakan metode Monte Carlo untuk memperkirakan tingkat kepercayaan yang sebenarnya ketika interval kepercayaan teori normal untuk varians diterapkan pada data non-normal. Prosedur klasik berdasarkan asumsi normalitas diuraikan terlebih dahulu.
+
+\begin{example}
+    (Interval kepercayaan untuk varians). if $X_{1},...,X_{n}$ adalah acak sampel dari Normaladalah acak sampel dari Normal $\left ( \mu ,\sigma ^{2} \right )$ distribusi, $n\geq 2$, dan $S^{2}$ adalah varians sampel, maka
+    \begin{equation*}
+        V=\frac{(n-1)S^2}{\sigma ^2} \sim X^2(n-1)
+    \end{equation*}
+\end{example}
+
+Satu sisi $100(1-\alpha)$ Interval kepercayaan diberikan oleh $ \left ( 0, \left ( n - 1 \right ) S^{2}/X_{\alpha}^{2} \right )$, mana $X^{2}_{\alpha}$ adalah kuantil $\alpha$ dari $X^{2}\left (n-1 \right )$ distribusi. Jika populasi sampel
+normal dengan varians $\sigma ^{2}$, maka probabilitas bahwa interval kepercayaan
+Berisi $\sigma ^{2}$ is $1-\sigma$. perhitungan $95\%$ batas kepercayaan atas (UCL) untuk ukuran sampel acak $n = 20$ dari Normal $(0, \sigma ^{2}=4)$ distribusi adalah ditunjukkan di bawah ini.
+
+\begin{spverbatim}
+    n <- 20
+    alpha <- 05
+    x <- rnorm(n, mean=0, sd=2)
+    UCL <- (n-1) * var(x) / qchisq(alpha, df*n-1)
+\end{spverbatim}
+
+Beberapa eksekusi menghasilkan batas kepercayaan atas UCL = 6.628, UCL= 7.348, UCL = 9.612, etc. Semua interval ini berisi $\sigma^{2}=4$. Dalam contoh ini,
+populasi sampel normal dengan $\sigma^{2}=4$, jadi tingkat kepercayaannya persis
+
+\begin{equation}
+    P\left ( \frac{19S^{2}}{X^{2}_{.05}\left ( 19 \right )} > 4 \right ) = P\left ( \frac{(n-1)S^{2}}{\sigma ^{2}}>X^{2}_{.05}(n-1)\right ) = 0.95.
+\end{equation}
+
+Jika pengambilan sampel dan estimasi diulang berkali-kali, kira-kira 95\%  interval berdasarkan (7.1) harus berisi $\sigma^{2}$, dengan asumsi bahwa populasi sampel normal dengan varians $\sigma^{2}$.
+
+Tingkat kepercayaan empiris adalah perkiraan tingkat kepercayaan yang diperoleh dengan simulasi. Untuk percobaan simulasi, ulangi langkah-langkah di atas dalam jumlah besar, dan hitung proporsi interval yang berisi parameter target.
+
+\textbf{Eksperimen Monte Carlo untuk memperkirakan tingkat kepercayaan}
+
+Misalkan $X \sim F_{x}$ adalah variabel acak yang menarik dan itu $\theta$ adalah parameter target yang akan diperkirakan.
+
+\begin{enumerate}
+    \item Untuk setiap replikasi, diindeks $j=1,...m:$
+    \begin{enumerate}
+        \item Hasilkan $j^{th}$ sampel acak, $X^{(j)}_{1},...,X_{n}^{(j)}.$
+        \item Menghitung interval kepercayaan $C_{j}$ untuk $j^{th}$ sample.
+        \item Menghitung $y_{j} = I(\theta \epsilon C _{j})$ untuk $j^{th}$ sample.
+    \end{enumerate}
+    \item Menghitung tingkat kepercayaan empiris $\overline{y} = \frac{1}{m}\sum_{j=1}^{m}y_{j}.$
+\end{enumerate}
+
+Penaksir $\bar{y}$ adalah proporsi sampel yang memperkirakan tingkat kepercayaan sebenarnya $1-\alpha^{*}, so Var(\bar{y})=(1-\alpha ^{*})\alpha ^{*}/m$ dan perkiraan kesalahan standar adalah $\widehat{se}(\bar{y})= \sqrt{(1-\overline{y})\bar{y}/m.}$
+
+\begin{example}
+     (Perkiraan MC tingkat kepercayaan). Lihat Contoh 7.4. Dalam contoh ini kita memiliki $\mu = 0, \sigma  = 2, n= 20, m = 1000 $ mereplikasi, dan $\alpha =0.05.$ Proporsi sampel interval yang berisi $\sigma ^{2}=4$ adalah perkiraan Monte Carlo tentang tingkat kepercayaan diri yang sebenarnya. Jenis simulasi ini dapat dengan mudah diimplementasikan dengan menggunakan fungsi replikasi.
+\end{example}
+
+\begin{spverbatim}
+    n <- 20
+    alpha <- .05
+    UCL <- replicate(1000, expr = {
+        x <- rnorm(n, mean = 0, sd = 2)
+        (n-1) * var(x) / qchisq(alpha, df = n-1)
+    } )
+    #menghitung jumlah interval yang mengandung sigma^2=4 jumlah (UCL > 4)
+    #atau menghitung rata-rata untuk mendapatkan tingkat kepercayaan
+    > mean (UCL > 4)
+    [1] 0.956
+\end{spverbatim}
+
+Hasilnya adalah 956 interval terpenuhi (UCL > 4), jadi keyakinan empiris
+levelnya adalah 95,6\% dalam percobaan ini. Hasilnya akan bervariasi tetapi harus dekat dengan nilai teoretisnya, 95\%. Kesalahan standar perkiraan adalah $(0.95(1-0.95)/1000)^{1/2}=0.00689.$
+
+\textbf{R Note 7.1}
+
+Perhatikan bahwa dalam fungsi replikasi, garis yang akan dieksekusi berulang kali diapit kurung kurawal { }.Sebagai alternatif, argumen ekspresi (expr) bisa menjadi panggilan fungsi:
+\begin{spverbatim}
+calcCI <- function(n, alpha) {
+     y <- rnorm(n, mean = 0, sd = 2)
+     return((n-1) * var(y) / qchisq(alpha, df = n-1))
+}
+UCL <- replicate(1000, expr = calcCI(n = 20, alpha = .05))
+\end{spverbatim}
+Prosedur estimasi interval berdasarkan (7.1) untuk memperkirakan varians sensitif terhadap penyimpangan dari normalitas,Jadi tingkat kepercayaan yang sebenarnya mungkin berbeda dari tingkat kepercayaan yang dinyatakan ketika data tidak normal.Keyakinan sejati 
+tingkat tergantung pada cdf statistik $S^{2}$.Tingkat kepercayaan adalah probabilitas bahwa interval $(0,(n-1)S^{2}/X_{\alpha}^{2})$ berisi nilai sebenarnya dari parameter $\sigma^{2}$,yaitu
+\begin{equation}
+    P(\frac{(n-1)S^{2}}{X_{\alpha}^{2}}>\sigma^{2})=P(S^{2}>\frac{\sigma^{2}X_{\alpha}^{2}}{n-1})=1-G(\frac{\sigma^{2}X_{\alpha}^{2}}{n-1})
+\end{equation},
+di mana G(·) adalah cdf dari $S^{2}$.Jika populasi sampel tidak normal,Kami memiliki masalah dalam memperkirakan CDF
+\begin{equation}
+    G(t)=P(S^{2}\leq c_{\alpha})=\int_{0}^{c_{\alpha}}g(x)dx
+\end{equation}
+di mana g(x) adalah kepadatan (tidak diketahui) dari $S^{2}$ dan $c_{\alpha}=\sigma^{2}X_{\alpha}^{2}/(n-1)$. Solusi perkiraan dapat dihitung secara empiris menggunakan integrasi Monte Carlo untuk memperkirakan $G(c_{\alpha}$. pekiraan dari $G(t)=P(S^{2}\leq c_{\alpha})=\int_{0}^{t}g(x)dx$, dihitung oleh integrasi Monte Carlo.Tidak perlu memiliki rumus explicit untuk g(x), asalkan kita dapat mengambil sampel dari distribusi g(X).
+
+\textbf{Contoh 7.6} (Tingkat kepercayaan empiris). di contoh 7.4, Apa yang terjadi jika populasi sampel tidak normal? Sebagai contoh, misalkan populasi sampel adalah $X^{2}(2)$, yang memiliki varians 4, tetapi jelas tidak normal. Kami mengulangi simulasi, mengganti sampel N(0,4) dengan $X^{2}(2)$ sampel.
+
+\begin{spverbatim}
+n <- 20
+alpha <- .05
+UCL <- replicate(1000, expr = {
+    x <- rchisq(n, df = 2)
+    (n-1) * var(x) / qchisq(alpha, df = n-1)
+    } )
+> sum(UCL > 4)
+[1] 773
+> mean(UCL > 4)
+[1] 0.773
+\end{spverbatim}
+
+Dalam percobaan ini,hanya 773 atau 77,3\% dari interval yang mengandung varians populasi,yang jauh dari cakupan 95\% di bawah normalitas.
+
+Keterangan 7.1.Masalah dalam Contoh 7.1-7.6 adalah parametric dalam arti bahwa distribusi populasi sampel ditentukan. Pendekatan Monte Carlo di sini kadang-kadang disebut parametric bootstrap. ordinary bootstrap yang dibahas dalam Bab 8 adalah prosedur yang berbeda. Dalam bootstrap "parametric",Sampel pseudo-acak dihasilkan dari distribusi probabilitas tertentu.Dalam bootstrap "parametric", Sampel dihasilkan dengan resampling dari sampel yang diamati. Metode bootstrap dalam buku ini mengacu pada metode resampling.
+
+Metode Monte Carlo untuk estimasi,termasuk beberapa jenis perkiraan interval kepercayaan bootstrap, dibahas dalam Bab 8. Metode bootstrap dan jackknife untuk memperkirakan bias dan kesalahan standar perkiraan juga dibahas dalam Bab 8. Sisa bab ini berfokus pada tes hipotesis, yang juga tercakup dalam Bab 10.
+
+\section{Metode Monte Carlo untuk Pengujian Hipotesis}
+Misalkan kita ingin menguji hipotesis mengenai parameter $\theta$ yang terletak pada ruang parameter $\Theta$  Hipotesis yang menarik adalah
+\begin{equation*}
+    H_{0} : \theta \in  \Theta _{0} vs H_{1} : \theta \in \Theta _{1}
+\end{equation*}
+kenapa $\Theta _{0}$ dan $\Theta _{1}$ partisi ruang parameter $\Theta$.
+Dua jenis kesalahan dapat terjadi dalam pengujian hipotesis statistik. Kesalahan Tipe I terjadi jika hipotesis nol ditolak padahal sebenarnya hipotesis nol itu benar. Kesalahan Tipe II terjadi jika hipotesis nol tidak ditolak padahal sebenarnya hipotesis nol itu salah.
+Tingkat signifikansi suatu tes dilambangkan dengan $\alpha$ dan $\alpha$ adalah batas atas pada probabilitas kesalahan Tipe I. Probabilitas menolak hipotesis nol tergantung pada nilai sebenarnya dari $\theta$. Untuk prosedur pengujian yang diberikan, $let \pi \left (\theta  \right )$ menunjukkan probabilitas menolak $H_{0}$. kemudian
+\begin{equation*}
+    \alpha  = Sup \pi \left ( \theta  \right ).
+              \theta \in \Theta _{0}
+\end{equation*}
+Probabilitas kesalahan Tipe I adalah probabilitas kondisional bahwa hipotesis nol ditolak mengingat bahwa H0 benar. Jadi, jika prosedur pengujiannya adalah direplikasi sejumlah besar kali di bawah kondisi hipotesis nol, tingkat kesalahan Tipe I yang diamati harus paling banyak (kira-kira) $\alpha$.
+Jika T adalah statistik pengujian dan $T^{*}$ adalah nilai yang diamati dari statistik pengujian, maka $T^{*}$ signifikan jika keputusan pengujian berdasarkan $T^{*}$ adalah menolak $H_{0}$. Probabilitas signifikansi atau p-value adalah nilai sekecil mungkin dari $\alpha$ sedemikian rupa sehingga statistik tes yang diamati akan signifikan.
+
+\subsection{Kesalahan Tipe I Empiris}
+Tingkat kesalahan Tipe I empiris dapat dihitung dengan eksperimen Monte Carlo. Prosedur pengujian direplikasi beberapa kali di bawah kondisi hipotesis nol. Tingkat kesalahan Tipe I empiris untuk Eksperimen Monte Carlo adalah proporsi sampel dari statistik pengujian yang signifikan di antara replikasi.
+
+\textbf{Eksperimen Monte Carlo untuk menilai tingkat kesalahan Tipe I:}
+\begin{enumerate}
+    \item Untuk setiap replikasi, diindeks oleh $j = 1,...,m:$
+    \begin{enumerate}
+    \item  Hasilkan $j^{th}$ random sample $x_{1}^{(j)},...,x_{n}^{(j)}$ dari distribusi nol.
+    \item Menghitung statistik pengujian $T_{j}$ dari $j^{th}$ sample.
+    \item Catat keputusan pengujian $I_{j}=1$ if $H_{0}$ ditolak pada tingkat signifikansi $\sigma$ dan  Sebaliknya $I_{j} = 0$.
+    \end{enumerate}
+     \item Menghitung proporsi pengujian signifikan $\frac{1}{m}\sum_{j=1}^{m}I_{j}$ Proporsi ini adalah tingkat kesalahan Tipe I yang diamati.
+\end{enumerate}
+Untuk percobaan Monte Carlo di atas, parameter yang diperkirakan adalah probabilitas dan perkiraan, tingkat kesalahan Tipe I yang diamati, adalah proporsi sampel. Jika kita menunjukkan tingkat kesalahan Tipe I yang diamati dengan $\hat{P}$, kemudian perkiraan $se(\hat{P})$
+\begin{equation}
+    \hat{se}\left ( \hat{p} \right ) = \sqrt{\frac{\hat{p}(1-\hat{p})}{m}} \leq \frac{0.5}{\sqrt{m}}.
+\end{equation}
+Prosedur ini diilustrasikan di bawah ini dengan contoh sederhana.
+
+\begin{example}
+    (Tingkat kesalahan Tipe I empiris). Misalkan $X_{1},...,X_{20}$ adalah sampel acak dari $a N \left ( \mu , \sigma ^{2} \right )$ distribusi. Test $H_{0}: \mu = 500 H_{1} : \mu > 500 at \sigma = 0.05$. Di bawah hipotesis nol
+\end{example}
+\begin{equation*}
+    T^{*} = \frac{\bar{T}- 500}{S/\sqrt{20}} \sim t(19),
+\end{equation*}
+mana $t(19)$ menunjukkan distribusi $t$ Siswa dengan 19 derajat kebebasan.
+Nilai besar dari $T^{*}$ mendukung hipotesis alternatif. Gunakan metode Monte Carlo untuk menghitung probabilitas empiris kesalahan Tipe $I$ saat $\sigma = 100$, dan periksa apakah itu kira-kira sama dengan $\alpha = 0.05$.
+Simulasi di bawah ini menggambarkan prosedur untuk kasus tersebut $\sigma = 100.$ t-test diimplementasikan oleh $t$. test di $R$, dan kami mendasarkan keputusan pengujian pada nilai-p yang dilaporkan yang dikembalikan oleh t.test.
+\begin{spverbatim}
+    n <- 20
+    alpha <- .05
+    mu0 <- 500
+    sigma <- 100
+
+    m <- 10000         #number of replicates
+    p <- numeric(m)    #storage  for p-values
+    for (j in 1:m) {
+         x <- rnorm(n, mu0, sigma)
+         ttest <- t.test(x, alternative = "greater", mu = mu0)
+         p[j] <- ttest\$p.value
+    }
+    p.hat <- mean(p < alpha)
+    set.hat <- sqrt(p.hat * (1 - p.hat) / m )
+    print(c(p.hat, se.hat))
+
+    [1] 0.050600000 0.002191795
+\end{spverbatim}
+ Tingkat kesalahan Tipe $I$ yang diamati dalam simulasi ini adalah $0.0506$, dan kesalahan standar perkiraan adalah kira-kira $\sqrt{0.05 x 0.95/m} = 0.0022.$ estimasi probabilitas kesalahan Tipe $I$ akan bervariasi, tetapi harus mendekati nominal menilai $\alpha = 0.05$ Karena semua sampel dihasilkan di bawah hipotesis nol dari model yang diasumsikan untuk uji-T (distribusi normal). Dalam percobaan ini tingkat kesalahan Tipe I empiris berbeda dari $\alpha = 0.05$ dengan kurang dari satu standar kesalahan.
+ 
+Secara teoritis, probabilitas menolak hipotesis nol ketika $\mu = 500$ persis $\alpha = 0.05$ dalam contoh ini. Simulasi benar-benar hanya menyelidiki secara empiris apakah metode penghitungan p-value dalam t.test (algoritma numerik) konsisten dengan nilai teoritis  $\alpha = 0.05$.
+
+Salah satu pendekatan paling sederhana untuk menguji normalitas univariat adalah tes kecondongan. Dalam contoh berikut, kami menyelidiki apakah tes berdasarkan distribusi asimtotik dari statistik kecondongan mencapai nominal tingkat signifikansi $\alpha$ di bawah hipotesis nol normalitas.
+\begin{example}
+    (Tes kecondongan normalitas). Kecondongan $\sqrt{\beta _{1}}$ dari acak variabel X didefinisikan oleh 
+    
+\end{example}
+\begin{equation}
+    \sqrt{\beta _{1}} = \frac{E\left [ (X - \mu x) \right ]^{3}}{\sigma ^{3}_{X}}
+\end{equation}
+
+kenapa $\mu x = E\left [ X \right ]$ dan $\sigma ^{2}_{X} = Var (X)$. (Notasi $\sqrt{\beta _{1}}$ adalah klasik notasi untuk koefisien kecondongan yang ditandatangani.)  Distribusi simetris jika $\sqrt{\beta _{1}}=0$, positif miring jika $\sqrt{\beta _{1}} > 0$, dan negatif miring jika $\sqrt{\beta _{1}} < 0$. Koefisien sampel kecondongan dilambangkan dengan $\sqrt{b_{1}}$ dan  didefinisikan sebagai
+
+\begin{equation}
+    \sqrt{b_{1}}= \frac{\frac{1}{n}\sum_{i=1}^{n}\left ( X_{i}-\bar{X} \right )^{3}}{(\frac{1}{n}\sum_{i=1}^{n}\left ( X_{i}-\bar{X} \right )^{2})^{3/2}}
+\end{equation}
+
+(Perhatikan bahwa $\sqrt{b_{1}}$ adalah notasi klasik untuk statistik kecondongan yang ditandatangani.) Jika distribusi $X$ normal, maka $\sqrt{b_{1}}$ secara asimtotik normal dengan rata-rata $0$ dan varians $6/\eta [64]$. Distribusi normal simetris, dan merupakan tes untuk normalitas berdasarkan kecondongan menolak hipotesis normalitas untuk besar nilai-nilai $ \left | \sqrt{b_{1}} \right |$. Hipotesisnya adalah
+
+\begin{equation}
+    H_{0} : \sqrt{\beta _{1}} = 0; H_{1} : \sqrt{\beta _{1}}\neq 0,
+\end{equation}
+di mana distribusi sampel dari statistik kecondongan diturunkan di bawah asumsi normalitas.
+
+Namun, konvergensi $\sqrt{\beta _{1}}$ distribusi batasnya agak lambat dan distribusi asimtotik bukanlah perkiraan yang baik untuk ukuran sampel kecil hingga sedang.
+
+Menilai tingkat kesalahan Tipe $I$ untuk uji kecondongan normalitas pada $\alpha = 0.05$ berdasarkan distribusi asimptotik $\sqrt{b_{1}}$ untuk ukuran sampel $\eta = 10, 20, 30, 50, 100, dan 500.$
+
+Vektor nilai kritis cv untuk masing-masing ukuran sampel $n = 10, 20, 30, 50, 100, dan 500$  dihitung di bawah distribusi batas normal dan disimpan Dalam CV.
+
+\begin{spverbatim}
+    n <- c(10, 20, 30, 50, 100, 500) #sample sizes
+    cv <- qnorm(.975, 0, sqrt(6/n)) #crit. values for each n
+    
+    asymptotic critical values:
+    n    10     20     30     50     100    500
+    cv 1.5182 1.0735 0.8765 0.6790 0.4801 0.2147
+\end{spverbatim}
+
+Distribusi asimptotik dari $\sqrt{b_{1}}$ tidak tergantung pada rata-rata dan varians dari distribusi normal sampel, sehingga sampel dapat dihasilkan
+dari distribusi normal standar. Jika ukuran sampel adalah $n[i]$ kemudian ${H_{0}}$ ditolak jika $\left | \sqrt{b_{1}} \right | > cv \left [ i \right ]$
+
+Pertama tulis fungsi untuk menghitung statistik kecondongan sampel.
+
+\begin{spverbatim}
+    sk <- function(x) {
+        #computes the sample skewness coeff.
+        xbar <- mean(x)
+        m3 <- mean((x - xbar)^3)
+        m2 <- mean((x - xbar)^2)
+        return( m3 / m2^1.5 )
+     }
+\end{spverbatim}
+
+Dalam kode di bawah ini, loop luar memvariasikan ukuran sampel $n$ dan bagian dalam loop adalah simulasi untuk $n$ saat ini. Dalam simulasi, keputusan tes disimpan sebagai $1$ $( reject {H_{0}} )$ atau $0$ jangan menolak $ {H_{0}}$ ) dalam sktests vektor. Saat simulasi untuk $n = 10.$   Hasil ini disimpan di p.reject $[1]$. Kemudian simulasi diulang untuk $n = 20, 30, 50, 100, 500,$ dan simpan p.reject $[2:6]$
+
+\begin{spverbatim}
+    #n is a vector of sample sizes
+    #we are doing length(n) different simulations
+    
+    p.reject <- numeric(length(n)) #to store sim. results
+    m <- 10000 #num. repl. each sim.
+    
+    for (i in 1:length(n)) {
+        sktests <- numeric(m) #test decisions
+        for (j in 1:m) {
+            x <- rnorm(n[i])
+            #test decision is 1 (reject) or 0
+            sktests[j] <- as.integer(abs(sk(x)) >= cv[i] )
+            }
+        p.reject[i] <- mean(sktests) #proportion rejected
+}
+> p.reject
+[1] 0.0129 0.0272 0.0339 0.0415 0.0464 0.0539
+\end{spverbatim}
+
+Hasil simulasi adalah perkiraan empiris tingkat kesalahan Tipe I yang dirangkum di bawah ini. 
+
+\begin{spverbatim}
+    n          10     20      30    50     100    500
+    estimate 0.0129 0.0272 0.0339 0.0415 0.0464 0.0539
+\end{spverbatim}
+
+Dengan $m = 10000$ mereplikasi kesalahan standar perkiraan kira-kira $\sqrt{0.05  x  0.95/m} = 0.0022.$ 
+
+\begin{equation}
+    Var \left ( \sqrt{b_{1}} \right ) = \frac{6(n-2)}{(n+1)(n+3)}
+\end{equation}
+
+Nilai yang tepat dari varians $[96]$ (Lihat juga $[65] atau [285])$. Mengulangi simulasi dengan
+
+\begin{spverbatim}
+    cv <- qnorm(.975, 0, sqrt(6*(n-2) / ((n+1)*(n+3))))
+    > round(cv, 4)
+    [1] 1.1355 0.9268 0.7943 0.6398 0.4660 0.2134
+\end{spverbatim}
+
+menghasilkan hasil simulasi yang dirangkum di bawah ini:
+\begin{spverbatim}
+    n          10     20     30     50     100    500
+    estimate 0.0548 0.0515 0.0543 0.0514 0.0511 0.0479
+\end{spverbatim}
+
+Perkiraan ini lebih dekat ke tingkat nominal $\alpha = 0.05.$  Pada tes kecondongan dan tes normalitas klasik lainnya lihat [63] atau [285]. 
+
+
+\subsection{Kuasa Tes}
+Dalam tes hipotesis $H_{0}$ vs $H_{1}$, kesalahan Tipe $\prod$ terjadi ketika $H_{1}$ benar, tetapi $H_{0}$ tidak ditolak.Kekuatan tes diberikan oleh fungsi daya $\pi:\Theta\rightarrow\left[0,1\right]$, yang merupakan probabilitas $\pi(\theta)$ menolak $H_{0}$ mengingat bahwa nilai sebenarnya dari parameter adalah $\theta$. jadi, untuk $\theta_{1}\in\Theta_{1}$, probabilitas tipe $\prod$ adalah $1-\pi(\theta_{1})$. Idealnya, kami lebih suka tes dengan probabilitas kesalahan rendah. Kesalahan tipe I dikendalikan oleh pilihan tingkat signifikansi $\alpha$. Kesalahan Tipe II rendah sesuai dengan daya tinggi di bawah hipotesis alternatif. Jadi, ketika membandingkan prosedur pengujian untuk hipotesis yang sama pada tingkat signifikansi yang sama, Kami tertarik untuk membandingkan kekuatan tes. Di umum perbandingannya bukan satu masalah tetapi banyak; Kekuatan $\pi(\theta_{1})$ dari tes di bawah hipotesis alternatif tergantung pada nilai tertentu dari alternatif $\theta_{1}$. Untuk uji-t dalam Contoh 7.7, $\Theta_{1}=(500,\infty)$. Namun, secara umum, set $\Theta_{1}$ bisa lebih rumit. 
+
+Jika fungsi daya tes tidak dapat diturunkan secara analitis, kekuatan tes terhadap alternatif tetap $\theta_{1}\in\Theta_{1}$ dapat diperkirakan dengan metode Monte Carlo. Perhatikan bahwa fungsi daya didefinisikan untuk semua $\theta\in\Theta$, tetapi kontrol $\alpha$ tingkat signifikansi $\pi(\theta)\leq\alpha$  untuk semua $\theta\in\Theta_{0}$. 
+
+\textbf{Eksperimen Monte Carlo untuk memperkirakan kekuatan tes terhadap yang tetap
+Alternatif}
+
+\begin{enumerate}
+    \item Pilih nilai tertentu dari parameter
+    \item Untuk setiap replikasi, diindeks oleh $j = 1,...,m:$
+    \begin{enumerate}
+        \item Hasilkan $j^{th}$ random sample $x_{1}^{(j)},...,x_{n}^{(j)}$ di bawah kondisi dari alternatif $\theta = \theta_{1}$
+        \item  Menghitung statistik pengujian $T_{j}$ dari $j^{th}$ sample.
+        \item  Catat keputusan pengujian: tetapkan $I_{j} = 1$ if $H_{0}$ ditolak pada signifikansi tingkat $\alpha $, dan jika tidak diatur $I_{j} = 0.$
+    \end{enumerate}
+    \item  Menghitung proporsi pengujian signifikan $\hat{\pi } (\theta _{1}) = \frac{1}{m}\sum_{j=1}^{m} I_{j}$
+\end{enumerate}
+
+\textbf{Contoh 7.9} (Kekuatan empiris). Gunakan simulasi untuk memperkirakan daya dan memplot kurva daya empiris untuk uji-t dalam Contoh 7.7. (Untuk pendekatan numerik yang tidak melibatkan simulasi, lihat komentar di bawah). Untuk memplot kurva, kita membutuhkan kekuatan empiris untuk urutan alternatif
+$\theta$ sepanjang sumbu horizontal. Setiap poin sesuai dengan eksperimen Monte Carlo. Bagian luar untuk loop memvariasikan titik $\theta$ (mu) dan loop replikasi dalam (lihat R Note 7.2.3) memperkirakan daya pada arus $\theta$.
+\begin{spverbatim}
+n <- 20
+m <- 1000
+mu0 <- 500
+sigma <- 100 
+mu <- c(seq(450, 650, 10)) #alternatives
+M <- length(mu)
+power <- numeric(M)
+for (i in 1:M) {
+    mu1 <- mu[i]
+    pvalues <- replicate(m, expr = {
+        #simulate under alternative mu1
+        x <- rnorm(n, mean = mu1, sd = sigma)
+        ttest <- t.test(x,
+                alternative = "greater", mu = mu0)
+        ttest\$p.value } )
+    power[i] <- mean(pvalues <= .05)
+}
+se <- sqrt(power * (1-power) / m)
+\end{spverbatim}
+
+Nilai perkiraan daya $\hat{\pi}(\theta)$ sekarang disimpan dalam daya vektor. Selanjutnya, plot kurva daya empiris, tambahkan bilah kesalahan vertikal pada $\hat{\pi}(\theta)\pm 2\hat{se}(\hat{\pi}(\theta))$. Untuk jenis plot ini, ggplot memudahkan untuk menambahkan dan menyesuaikan bilah kesalahan.
+
+\begin{spverbatim}
+library(ggplot2)
+df <- data.frame(mean=mu, power=power,
+        upper=power+2*se, lower=power-2*se)
+ggplot(df, aes(x=mean, y=power)) +
+    geom_line() +
+    geom_vline(xintercept=500, lty=2) +
+    geom_hline(yintercept=c(0,.05), lty=1:2) +
+    geom_errorbar(aes(ymin=lower, ymax=upper), width = 0.2, lwd=1.5)
+\end{spverbatim}
+
+Kurva daya ditunjukkan pada Gambar 7.1. perhatikan bahwa kekuatan empiris $\hat{\pi}(\theta)$ kecil ketika $\theta$ mendekati $\theta_{0}$ = 500, dan meningkat saat $\theta$ bergerak lebih jauh dari $\theta_{0}$, mendekati 1 sebagai $\theta\rightarrow\infty$ .
+
+Remark 7.2 Yang tidak sentral $t$ distribusi muncul dalam perhitungan daya untuk t-test.  Umum noncentral $t$ dengan parameter $(\nu,\vartheta)$ didefinisikan sebagai distribusi $T$ $(\nu,\vartheta)$ = $(Z + \vartheta)/\sqrt{V/v}$ kenapa $Z\sim N(0.1)$ dan $V\sim X^{2}(v)$ adalah
+merdeka.
+
+Kira $X_{1},X_{2},...,X_{n}$ adalah sampel acak dari $a$ $N (\mu , \sigma ^{2})$ distribusi, dan t-statistic $T = \left ( \bar{X} - \mu_{0}\right ) / \left ( S/\sqrt{n} \right )$ diterapkan untuk menguji $H_{0} : \mu = \mu_{0}$. Under hipotesis nol, $T$ memiliki pusat $t(n-1)$ distribusi,  tetapi jika $\mu \neq \mu_{0}$ $T$ memiliki non-sentral $t$ distribusi dengan $n-1$ derajat kebebasan dan parameter noncentrality $\vartheta = (\mu -\mu _{0})\sqrt{n/\sigma}.$ Pendekatan numerik untuk mengevaluasi CDF dari non-pusat $t$ distribusi, berdasarkan algoritma Lenth [183], diimplementasikan dalam fungsi $R$ pt. Lihat juga $power.t.test.$ 
+
+\begin{example}
+    (Kekuatan uji kecondongan normalitas). Tes kecondongan
+\end{example}
+
+.
+.
+.
+.
+.
+.
+.
+
+normalitas dijelaskan dalam Contoh 7.8. Dalam contoh ini, kami memperkirakan dengan simulasi kekuatan uji kecondongan normalitas terhadap alternatif normal (campuran skala normal) yang terkontaminasi yang dijelaskan dalam Contoh 7.3 Distribusi normal yang terkontaminasi dilambangkan dengan 
+\begin{equation}
+    \left ( 1-\varepsilon  \right )N\left ( \mu =0,\sigma ^{2}=1 \right ) + \varepsilon N\left ( \mu =0,\sigma ^{2}=100 \right ), 0\leq \varepsilon \leq 1
+\end{equation}
+
+kapan $\varepsilon =0$ atau $\varepsilon =1$ distribusinya normal, tetapi campurannya tidak normal untuk $0< \varepsilon < 1$. Kita dapat memperkirakan kekuatan tes kecondongan untuk
+urutan alternatif yang diindeks oleh $\varepsilon$ dan Plot kurva kekuatan untuk kekuatan uji kecondongan terhadap jenis alternatif ini. Untuk percobaan ini, tingkat signifikansinya adalah $\alpha =0.1$ dan ukuran sampel adalah $ n = 30$.  SK statistik kecondongan diimplementasikan pada Contoh 7.8.
+\begin{spverbatim}
+alpha <- .1
+n <- 30
+m <- 2500
+epsilon <- c(seq(0, .15, .01), seq(.15, 1, .05))
+N <- length(epsilon)
+pwr <- numeric(N)
+#critical value for the skewness test
+cv <- qnorm(1-alpha/2, 0, sqrt(6*(n-2) / ((n+1)*(n+3))))
+
+for (j in 1:N) {      #for each epsilon
+     e <- epsilon[j]
+     sktests <- numeric(m)
+     for (i in 1:m) { #for each replicate
+          sigma <- sample(c(1, 10), replace = TRUE,
+               size = n, prob = c(1-e, e))
+          x <- rnorm(n, 0, sigma)
+          sktests[i] <- as.integer(abs(sk(x)) >= cv)
+          }
+    pwr[j] <- mean(sktests)
+    }
+se <- sqrt(pwr * (1-pwr) / m)
+\end{spverbatim}
+Hasilnya dapat diringkas dalam plot kekuatan vs probabilitas pencampuran $\varepsilon$. Dalam versi ggplot plot kami menggunakan versi alternatif dari bilah kesalahan, geom\_pointrange,  untuk menampilkan margin kesalahan pada setiap perkiraan.
+\begin{spverbatim}
+    library(ggplot2)
+    df <- data.frame(epsilon=epsilon, power=pwr,
+             upper=pwr+2*se, lower=pwr-2*se)
+    ggplot(df, aes(x=epsilon, y=power)) +
+      geom_line() + labs(x=bquote(epsilon)) +
+      geom_hline(yintercept=.1, lty=2) +
+      geom_pointrange(aes(ymin=lower, ymax=upper))
+\end{spverbatim}
+Kurva kekuatan empiris ditunjukkan pada Gambar 7.2. Perhatikan bahwa kurva daya melintasi garis horizontal yang sesuai dengan $\alpha =0.10$ di kedua titik akhir, $\epsilon = 0$ dan $\epsilon =1$ di mana alternatifnya didistribusikan secara normal. untuk $0 < \epsilon < 1$ kekuatan empiris dari tes ini lebih besar dari $0.10$ dan tertinggi ketika $\epsilon$ adalah tentang $0.15$
+
+\subsection{Perbandingan Kuasa}
+Metode Monte Carlo sering diterapkan untuk membandingkan kinerja prosedur pengujian yang berbeda. Uji kecondongan normalitas diperkenalkan pada Contoh 7.8. Ada banyak tes normalitas dalam literatur $(lihat [63]$ dan $[285]).$ Dalam contoh berikut, tiga tes normalitas univariat dibandingkan.
+\begin{example}
+     (Perbandingan kekuatan tes normalitas). Bandingkan kekuatan empiris dari uji kecondongan normalitas univariat dengan uji Shapiro-Wilk $[267]$. Bandingkan juga kekuatan uji energi $[277]$, yang didasarkan pada jarak antara elemen sampel
+\end{example}
+let $N$ menunjukkan keluarga distribusi normal univariat. Maka hipotesis tesnya adalah 
+\begin{equation}
+    H_{0} : F_{x}  \epsilon N       
+   H_{1} : F_{x} \notin N
+\end{equation}
+Tes Shapiro-Wilk didasarkan pada regresi statistik urutan sampel pada nilai yang diharapkan di bawah normalitas, sehingga jatuh dalam categ umum.
+
+.
+.
+.
+.
+.
+.
+.
+
+GAMBAR 7.2:Daya empiris $\hat{\pi}(\varepsilon)\pm2\hat{se}(\hat{\pi}(\varepsilon))$ untuk uji kecondongan normalitas terhadap alternatif campuran skala normal $\varepsilon$-terkontaminasi pada Contoh 7.10. Garis horizontal melewati 0, 10, tingkat signifikansi. tes berdasarkan regresi dan korelasi. 
+
+Perkiraan nilai kritis statistik ditentukan oleh transformasi statistik W ke normalitas [252, 253, 254] untuk ukuran sampel $7\leq n\leq 2000$. Tes Shapiro-Wilk diimplementasikan oleh fungsi R shapiro.test.
+
+Uji energi didasarkan pada jarak energi antara distribusi sampel dan distribusi normal, Jadi nilai statistik yang besar signifikan. Tes energi adalah tes normalitas multivariat [277], Jadi tes yang dipertimbangkan di sini adalah kasus khusus d = 1.Sebagai ujian normalitas univariat, energi berkinerja sangat mirip dengan tes Anderson-Darling [14]. Statistik energi
+untuk pengujian normalitas adalah 
+\begin{equation}
+    Q_{n}=n\left\lfloor\frac{2}{n}\sum_{i=1}^{n}E\left\| x_{i-X}\right\|-E\left\| X-{X}'\right\|-\frac{1}{n^{2}}\sum_{i,j=1}^{n}\left\| x_{i}-x_{j}\right\|\right \rfloor
+\end{equation}
+di mana $X,{X}'$ adalah iid. Nilai $Q_{n}$ yang besar signifikan. Dalam kasus univariat, rumus komputasi berikut ini setara:
+\begin{equation}
+    Q_{n}=n\left [ \frac{2}{n}\sum_{i=1}^{n}(2Y_{i}\Phi(Y_{i})+2\o(Y_{i}))-\frac{2}{\sqrt{\pi}}-\frac{2}{n^{2}}\sum_{k=1}^{n}(2k-1-n)Y_{(k)} \right ]
+\end{equation}
+Bagaimana $Y_{i} = \frac{X_{i}-\mu x}{\sigma x}, Y_{(k)}$ adalah $k^{th}$ statistik urutan sampel standar, $\Phi $ adalah CDF normal standar dan $\phi$ adalah kepadatan normal standar. Jika parameter tidak diketahui, ganti rata-rata sampel dan standar sampel deviasi ke komputasi $Y_{1},...,Y_{n}$. Rumus komputasi untuk kasus multivariat diberikan dalam [277]. Uji energi untuk normalitas univariat dan multivariat diimplementasikan dalam mvnorm.etest dalam paket energi [237].
+
+Uji kecondongan normalitas diperkenalkan pada Contoh 7.8 dan 7.10.
+Contoh fungsi skewness sk diberikan pada Contoh 7.8. 
+
+Untuk perbandingan ini kami menetapkan tingkat signifikansi $\alpha = 0,1$. Contoh di bawah ini membandingkan kekuatan tes terhadap alternatif normal yang terkontaminasi yang dijelaskan dalam Contoh 7.3. Alternatifnya adalah campuran normal yang dilambangkan dengan 
+\begin{equation}
+    \left ( 1-\varepsilon  \right )N\left ( 0,\sigma ^{2}=1 \right )+\varepsilon N\left ( \mu =0,\sigma ^{2}=100 \right ),  0\leq \varepsilon \leq 1.
+\end{equation}
+kapan $\varepsilon=0$ atau $\varepsilon=1$  distribusinya normal, dan dalam hal ini tingkat kesalahan Tipe I empiris harus dikontrol kira-kira pada tingkat nominal $\alpha =0.1$. kalau $0 < \varepsilon < 1$ distribusinya tidak normal, dan kami tertarik untuk membandingkan kekuatan empiris tes terhadap alternatif ini.
+\begin{spverbatim}
+# initialize input and output
+library(energy)
+alpha <- .1
+n <- 30
+m <- 2500         #try smaller m for a trial run
+epsilon <- .1
+test1 <- test2 <- test3 <- numeric(m)
+
+#critical value for the skewness test
+cv <- qnorm(1-alpha/2, 0, sqrt(6*(n-2) / ((n+1)*(n+3))))
+
+# estimate power
+for (j in 1:m) {
+     e <- epsilon
+     sigma <- sample(c(1, 10), replace = TRUE,
+          size = n, prob = c(1-e, e))
+     x <- rnorm(n, 0, sigma)
+     test1[j] <- as.integer(abs(sk(x)) >= cv)
+     test2[j] <- as.integer(
+                 shapiro.test(x)$p.value <= alpha)
+     test3[j] <- as.integer(
+                 mvnorm.etest(x, R=200)$p.value <= alpha)
+}
+print(c(epsilon, mean(test1), mean(test2), mean(test3)))
+detach(package:energy)
+\end{spverbatim}
+Simulasi diulang untuk beberapa pilihan $\varepsilon$ dan hasil disimpan di
+sim matriks. Hasil simulasi untuk $n=30$ diringkas dalam Tabel 7.2 dan
+pada Gambar 7.3. Plot diperoleh sebagai berikut.
+\begin{spverbatim}
+# plot the empirical estimates of power
+plot(sim[,1], sim[,2], ylim = c(0, 1), type = "l",
+     xlab = bquote(epsilon), ylab = "power")
+lines(sim[,1], sim[,3], lty = 2)
+lines(sim[,1], sim[,4], lty = 4)
+abline(h = alpha, lty = 3)
+legend("topright", 1, c("skewness", "S-W", "energy"),
+     lty = c(1,2,4), inset = .02)
+\end{spverbatim}
+Standard error of the estimates is at most $0.5/\sqrt{m}=0.01$ Perkiraan untuk tingkat kesalahan Tipe I empiris sesuai dengan $\varepsilon =0 $ dan $\varepsilon =1 $. Semua tes mencapai kira-kira tingkat signifikansi nominal $\alpha =0.01$ dalam satu kesalahan standar. Tes berada pada tingkat signifikansi yang kira-kira sama, sehingga bermakna untuk membandingkan hasil untuk kekuasaan.
+
+Hasil simulasi menunjukkan bahwa Shapiro-Wilk dan tes energi hampir sama kuatnya terhadap jenis alternatif ini ketika $n=30$ dan $\varepsilon<0.5$.  Keduanya memiliki daya yang lebih tinggi daripada uji kecondongan secara keseluruhan dan energi tampaknya memiliki daya tertinggi untuk $0.5 \leq \varepsilon \leq 0.8 $.
+
+.
+.
+.
+.
+
+\begin{example}
+    Kekuatan empiris dari tiga tes normalitas terhadap alternatif normal yang terkontaminasi dalam Contoh 7.11 $(n=30, \alpha =0.1, se\leq 0.01)$
+\end{example}
+
+.
+.
+.
+.
+.
+.
+
+
+\section{Aplikasi: Uji Kesamaan Varians}
+Contoh-contoh di bagian ini mengilustrasikan metode Monte Carlo untuk tes dua sampel sederhana dengan varians yang sama.
+
+Tes "Count Five" dua sampel untuk kesetaraan varians yang diperkenalkan oleh McGrath dan Yeh [200] menghitung jumlah titik ekstrem dari setiap sampel relatif terhadap kisaran sampel lainnya. Misalkan sarana dari dua sampel
+sama dan ukuran sampel sama. Pengamatan dalam satu sampel adalah dianggap ekstrem jika tidak berada dalam kisaran sampel lainnya. Jika salah satu sampel memiliki lima atau lebih titik ekstrem, hipotesis varians yang sama ditolak.
+\begin{example}
+    (Hitung Lima statistik tes). Perhitungan statistik uji diilustrasikan dengan contoh numerik. Membandingkan boxplot berdampingan pada Gambar 7.4 dan amati bahwa ada beberapa titik ekstrem di setiap sampel sehubungan dengan sampel lainnya.
+\end{example}
+\begin{spverbatim}
+    x1 <- rnorm(20, 0, sd = 1)
+    x2 <- rnorm(20, 0, sd = 1.5)
+    y <- c(x1, x2)
+    group <- rep(1:2, each = length(x1))
+    boxplot(y ~ group, boxwex = .3, xlim = c(.5, 2.5), main = "")
+    points(group, y)
+\end{spverbatim}
+
+.
+.
+.
+.
+
+\begin{example}
+    Boxplots memperlihatkan titik ekstrem untuk statistik Hitung Lima dalam Contoh 7.12.
+\end{example}
+\begin{spverbatim}
+       # now identify the extreme points
+       > range(x1)
+       [1] -2.782576 1.728505
+       > range(x2)
+       [1] -1.598917 3.710319
+       > i <- which(x1 < min(x2))
+       > j <- which(x2 > max(x1))
+       > x1[i]
+       [1] -2.782576
+       > x2[j]
+       [1] 2.035521 1.809902 3.710319
+\end{spverbatim}
+Statistik Count Five adalah jumlah maksimum titik ekstrim, maks(1, 3), sehingga tes Count Five tidak akan menolak hipotesis varians yang sama. Perhatikan bahwa kita hanya membutuhkan jumlah titik ekstrim, dan jumlah ekstrim dapat ditentukan tanpa mengacu pada boxplot sebagai berikut.
+\begin{spverbatim}
+    out1 <- sum(x1 > max(x2)) + sum(x1 < min(x2))
+    out2 <- sum(x2 > max(x1)) + sum(x2 < min(x1))
+    > max(c(out1, out2))
+    [1] 3
+\end{spverbatim}
+\begin{example}
+    (Hitung Lima statistik tes, cont.). Pertimbangkan kasus dua sampel acak independen dari distribusi normal yang sama. Perkirakan distribusi sampel dari jumlah maksimum titik ekstrem, dan temukan
+    $0,80, 0,90, dan 0,95$ kuantil distribusi sampel.
+\end{example}
+Fungsi maxout di bawah ini menghitung jumlah maksimum titik ekstrim dari setiap sampel sehubungan dengan kisaran sampel lainnya. Distribusi sampel dari statistik hitungan ekstrim dapat diperkirakan dengan percobaan Monte Carlo.
+\begin{spverbatim}
+    maxout <- function(x, y) {
+           X <- x - mean(x)
+           Y <- y - mean(y)
+           outx <- sum(X > max(Y)) + sum(X < min(Y))
+           outy <- sum(Y > max(X)) + sum(Y < min(X))
+           return(max(c(outx, outy)))
+     }
+     n1 <- n2 <- 20
+     mu1 <- mu2 <- 0
+     sigma1 <- sigma2 <- 1
+     m <- 1000
+     # generate samples under H0
+     stat <- replicate(m, expr={
+          x <- rnorm(n1, mu1, sigma1)
+          y <- rnorm(n2, mu2, sigma2)
+          maxout(x, y)
+          })
+      print(cumsum(table(stat)) / m)
+      print(quantile(stat, c(.8, .9, .95)))
+\end{spverbatim}
+Kriteria tes "Hitung Lima" terlihat masuk akal untuk distribusi normal. CDF empiris dan kuantil adalah
+\begin{spverbatim}
+   1     2     3    4      5     6     7     8    9     10    11
+0.149 0.512 0.748 0.871 0.945 0.974 0.986 0.990 0.996 0.999 1.000
+
+80% 90% 95%
+ 4   5   6
+\end{spverbatim}
+Perhatikan bahwa fungsi kuantil memberikan 6 sebagai kuantil 0,95. Namun, jika $\alpha=0.05$ adalah tingkat signifikansi yang diinginkan, nilai kritis 5 tampaknya menjadi pilihan terbaik. Fungsi kuantil tidak selalu merupakan cara terbaik untuk memperkirakan nilai kritis. Jika kuantil digunakan, bandingkan hasilnya dengan cdf empiris.
+
+Kriteria uji "Hitung Lima" dapat diterapkan untuk sampel acak independen ketika variabel acak didistribusikan secara serupa dan ukuran sampel sama. l. (Variabel acak X dan Y disebut didistribusikan secara serupa jika Y memiliki distribusi yang sama dengan $( X - a)/b$ dimana $\alpha$ dan $b > 0$ adalah konstanta.) Ketika data dipusatkan oleh sarana populasi masing-masing, McGrath dan Yeh [200] menunjukkan bahwa tes Count Five pada data terpusat memiliki tingkat signifikansi paling banyak $0,0625.$
+
+Dalam praktiknya, sarana populasi umumnya tidak diketahui dan setiap sampel akan dipusatkan dengan mengurangi rata-rata sampelnya. Selain itu, ukuran sampel mungkin tidak sama.
+\begin{example}
+    (Tes Hitung Lima). Gunakan metode Monte Carlo untuk memperkirakan tingkat signifikansi tes ketika setiap sampel dipusatkan dengan mengurangi rata-rata sampelnya. Di sini sekali lagi kami mempertimbangkan distribusi normal. Fungsi count5test mengembalikan nilai 1 (menolak $H_{0}$) atau $0$(tidak menolak $H_{0}.$)
+\end{example}
+\begin{spverbatim}
+    count5test <- function(x, y) {
+         X <- x - mean(x)
+         Y <- y - mean(y) 
+         outx <- sum(X > max(Y)) + sum(X < min(Y))
+         outy <- sum(Y > max(X)) + sum(Y < min(X))
+         # return 1 (reject) or 0 (do not reject H0)
+         return(as.integer(max(c(outx, outy)) > 5))
+    }
+    n1 <- n2 <- 20
+    mu1 <- mu2 <- 0
+    sigma1 <- sigma2 <- 1
+    m <- 10000
+    tests <- replicate(m, expr = {
+        x <- rnorm(n1, mu1, sigma1)
+        y <- rnorm(n2, mu2, sigma2)
+        x <- x - mean(x) #centered by sample mean
+        y <- y - mean(y)
+        count5test(x, y)
+    } )
+    alphahat <- mean(tests)
+    > print(alphahat)
+    [1] 0.0565
+\end{spverbatim}
+Jika sampel dipusatkan oleh rata-rata populasi, kita harus mengharapkan tingkat kesalahan Tipe I empiris sekitar $0.055$, dari simulasi kami sebelumnya untuk memperkirakan kuantil statistik maxout. Dalam simulasi, setiap sampel dipusatkan dengan mengurangi rata-rata sampel, dan tingkat kesalahan Tipe I empiris adalah $0.0565 (se=0.0022)$
+\begin{example}
+(Tes Hitung Lima, cont.). Mengulangi contoh sebelumnya, kami memperkirakan tingkat kesalahan Tipe I empiris ketika ukuran sampel berbeda dan kriteria tes "Hitung Lima" diterapkan. Setiap sampel dipusatkan dengan mengurangi rata-rata sampel.
+\end{example}
+\begin{spverbatim}
+    n1 <- 20
+    n2 <- 30
+    mu1 <- mu2 <- 0
+    sigma1 <- sigma2 <- 1
+    m <- 10000
+    
+    alphahat <- mean(replicate(m, expr={
+           x <- rnorm(n1, mu1, sigma1)
+           y <- rnorm(n2, mu2, sigma2)
+           x <- x - mean(x) #centered by sample mean
+           y <- y - mean(y)
+           count5test(x, y)
+           }))
+    print(alphahat)
+    [1] 0.1064
+\end{spverbatim}
+Hasil simulasi menunjukkan bahwa kriteria "Hitung Lima" tidak selalu mengontrol kesalahan Tipe I pada $\alpha \leq 0.0625$ ketika ukuran sampel tidak sama. Mengulang simulasi di atas dengan $n_{1}=20$ dan $n_{2}=50,$ Tipe empiris
+Tingkat kesalahan saya adalah $0.2934$. see[200] untuk metode menyesuaikan kriteria pengujian untuk
+ukuran sampel yang tidak sama.
+\begin{example}
+    (Hitung Lima, cont.). Gunakan metode Monte Carlo untuk memperkirakan kekuatan tes Count Five, di mana distribusi sampel berada $N(\mu _{1}=0,\sigma ^{2}_{1}=1), N(\mu 2=0,\sigma^{2}_{2}=1.5^{2})$, dan ukuran sampel adalah $n_{1}=_{2}=20$.
+\end{example}
+\begin{spverbatim}
+    # generate samples under H1 to estimate power
+    sigma1 <- 1
+    sigma2 <- 1.5
+    
+    power  <- mean(replicate(m, expr={
+         x <- rnorm(20, 0, sigma1)
+         y <- rnorm(20, 0, sigma2)
+         count5test(x, y)
+         }))
+    
+    > print(power)
+    [1] 0.3129
+\end{spverbatim}
+Kekuatan empiris dari tes ini adalah $0.3129(se\leq0.005$ terhadap alternatif $(\sigma _{1}=1, \sigma _{2}=1.5)$ dengan $n_{1}=n_{2}=20$. Lihat [200] untuk perbandingan daya dengan tes lain untuk varians dan aplikasi yang sama.
+
+
+\section{Latihan}
+\begin{enumerate}
+    \item Perkirakan MSE dari level $k$ yang  dipangkas berarti 
+          untuk sampel acak ukuran $20$ yang dihasilkan dari distribusi Cauchy standar. (Sasaran parameter $\theta$ adalah pusat atau median; nilai yang diharapkan tidak ada.) Meringkas perkiraan UMK dalam tabel untuk $k = 1,2,...9.$
+    \item Plot kurva daya empiris untuk uji-t dalam 
+          Contoh 7.9, mengubah hipotesis alternatif menjadi $H_{1} : \mu \neq 500$, dan menjaga tingkat signifikansi $\alpha =0.05$.
+    \item Memplot kurva daya untuk uji-t dalam Contoh 7.9  untuk ukuran sampel $10, 
+          20, 30, 40, dan 50,$ tetapi hilangkan bilah kesalahan standar. Plot kurva pada grafik yang sama, masing-masing dalam warna yang berbeda atau jenis garis yang berbeda, dan sertakan legenda. Komentari hubungan antara kekuasaan dan sampel.
+    \item Misalkan $X_{1},...,X_{n}$ n adalah 
+          sampel acak dari distribusi lognormal. Buat interval kepercayaan 95\% untuk parameter $\mu $ Gunakan metode Monte Carlo untuk mendapatkan perkiraan empiris tingkat kepercayaan ketika data dihasilkan dari lognormal standar.
+    \item Lihat Contoh 1.6 (pengkodean panjang 
+        proses). Gunakan simulasi untuk memperkirakan probabilitas bahwa panjang lari maksimum yang diamati untuk eksperimen membalik koin wajar ada di $[9, 11]$ dalam ukuran sampel $1000.$ Gunakan hasil simulasi Anda untuk memperkirakan kesalahan standar dari panjang eksekusi maksimum untuk eksperimen ini. Misalkan Anda mengamati $1000$ flip koin dan panjang lari maksimum adalah $9$. Apakah Anda curiga bahwa koin itu tidak adil? Menjelaskan.
+    \item Misalkan interval t simetris 95\% diterapkan untuk memperkirakan rata-rata, tetapi data sampel tidak normal. Maka probabilitas bahwa interval kepercayaan mencakup rata-rata belum tentu sama dengan $0,95$. Gunakan eksperimen Monte Carlo untuk memperkirakan probabilitas cakupan T-interval untuk sampel acak $X^{2}(2)$ data dengan ukuran sampel $n=20.$ Bandingkan hasil interval t Anda dengan hasil simulasi dalam Contoh 7.4. (Interval t harus lebih kuat untuk menyimpang dari normalitas
+daripada interval untuk varians.)
+\item Perkirakan $ 0.025, 0.05, 0.95, 0.975$ kuantil kecondongan $\sqrt{b_{1}}$ di bawah normalitas oleh eksperimen Monte Carlo. Hitung kesalahan standar perkiraan dari (2.14) menggunakan perkiraan normal untuk kepadatan (dengan rumus varians yang tepat). Membandingkan perkiraan kuantil dengan kuantil perkiraan sampel besar $\sqrt{b_{1}} \approx N\left ( 0,6/n \right )$
+\item Perkirakan kekuatan uji kecondongan normalitas terhadap simetris Beta$\alpha ,\alpha $ distribusi dan komentar pada hasil. Apakah hasilnya berbeda untuk alternatif simetris ekor berat seperti $t(v)?$
+\item Lihat Contoh 7.16. Ulangi simulasi, tetapi juga hitung $F$ uji varians yang sama, pada tingkat signifikansi $\hat{\alpha } = 0.055$. Bandingkan kekuatan uji Count Five dan uji F untuk ukuran sampel kecil, sedang, dan besar. (Ingatlah bahwa tes F tidak berlaku untuk non-normal distribusi.)
+\item  Biarkan $X$ menjadi variabel acak non-negatif dengan $\mu = E\left [ X \right ] < \infty $. Untuk sampel acak $x_{1},...x_{n}$ dari distribusi $X$, rasio Gini adalah didefinisikan oleh 
+\[
+G =\frac{1}{2n^{2}\mu }\sum_{j=1}^{n}\sum_{i=1}^{n}\left | x_{i} -x_{j}\right |.
+\]
+Rasio Gini diterapkan dalam ilmu ekonomi untuk mengukur ketimpangan dalam distribusi pendapatan (see, e.g., [168]).Perhatikan bahwa $G$ dapat ditulis dalam hal statistik pesanan $x_{(i)}$ as
+\[
+G=\frac{1}{n^{2}\mu }\sum_{i=1}^{n}(2i-n-1)x_{(i)}
+\]
+Jika rata-rata tidak diketahui, let $\hat{G}$  jadilah statistik $G$ dengan $\mu$ digantikan oleh $\bar{x}$.  Perkirakan dengan simulasi rata-rata, median, dan desil $\bar{G}$ if $X$ adalah lognormal standar. Ulangi prosedur untuk distribusi seragam dan Bernoulli $(0.1)$. Juga membangun histogram kepadatan replikasi dalam setiap kasus.
+\end{enumerate} 
+
+
+
+
+\newpage
+\printbibliography[heading=bibintoc,title={Daftar Pustaka}]
+
+\end{document}

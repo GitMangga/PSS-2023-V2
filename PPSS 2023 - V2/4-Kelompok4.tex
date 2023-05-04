@@ -1,0 +1,520 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage{graphicx, amsthm, enumerate, parskip, amssymb, amsmath}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\theoremstyle{definition}
+\newtheorem{definition}{Definisi}[section]
+\newtheorem{theorem}{Teorema}[section]
+\newtheorem{example}{Contoh}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{prop}{Proposition}[section]
+\usepackage{listings, fancyvrb, spverbatim, xcolor, enumitem}
+\lstset{% setup listings
+    language=R,% set programming language
+    frame=tb,
+    basicstyle=\ttfamily\small,% basic font style
+    keywordstyle=\color{blue},% keyword style
+    commentstyle=\color{gray},% comment style
+    breaklines=true,% automatic line breaking
+    fancyvrb=true,% verbatim code is typset by listings
+}
+\usepackage[
+    backend=biber,
+    style=bwl-FU,
+    sorting=nyt,
+    maxbibnames=99,
+    natbib=true,
+]
+{biblatex}
+\addbibresource{DPustaka.bib}
+
+%% ---------------------------
+\begin{document}
+    \title{Integrasi Monte Carlo dan Pengurangan Varians}
+    \author{Tangkas Pangestu 4112321021\\
+    Indah Fitri Auliya 4112321031}
+\date{\today}
+\begin{titlepage}
+    \maketitle
+\end{titlepage}
+
+\section{Pendahuluan}
+Integrasi Monte Carlo adalah teknik numerik yang digunakan untuk menghitung nilai integral dari sebuah fungsi menggunakan metode simulasi acak. Teknik ini didasarkan pada konsep probabilitas dan statistik, dan dapat digunakan untuk mengevaluasi integral yang kompleks di mana sulit atau bahkan tidak mungkin menemukan solusi analitik.
+
+Metode Monte Carlo dikembangkan pada akhir 1940-an setelah Perang Dunia II, tetapi gagasan tentang pengambilan sampel acak bukanlah hal yang baru. Sejak tahun 1777, Comte de Buffon menggunakan eksperimen acak untuk memeriksa secara empiris perhitungan probabilitasnya untuk eksperimen jarum Buffon yang terkenal. Contoh lain yang terkenal adalah ketika W.S. Gossett menggunakan pengambilan sampel acak untuk mempelajari distribusi dari apa yang sekarang disebut statistik "Student t", yang diterbitkan dengan nama samaran "Student" pada tahun 1908 \citep{Student1908}. Pengembangan ENIAC, komputer elektronik pertama, yang selesai dibangun pada tahun 1946 di Universitas Pennsylvania, dan artikel seminal oleh Metropolis dan Ulam pada tahun 1949 menandai era baru yang penting dalam aplikasi metode pengambilan sampel. Tim ilmuwan di Laboratorium Nasional Los Alamos dan banyak peneliti lainnya berkontribusi pada pengembangan awal, termasuk Ulam, Richtmyer, dan von Neumann \citep{Ulam1947}. Untuk diskusi menarik tentang sejarah metode Monte Carlo dan komputasi ilmiah, lihat Metropolis\citep{Metropolis1987}.
+
+Fungsi Integrasi Monte Carlo adalah untuk menghitung nilai integral suatu fungsi $f(x)$ dengan menggunakan metode Monte Carlo. Metode Monte Carlo mengambil sampel acak dari domain fungsi yang diintegralkan dan memperkirakan nilai rata-rata fungsi di atas semua sampel acak untuk memperkirakan nilai integral. Fungsi Integrasi Monte Carlo digunakan untuk mengatasi masalah integral yang rumit atau tidak dapat dipecahkan secara analitik, dan memberikan pendekatan numerik yang akurat dan efektif untuk menghitung nilai integral.
+
+Dalam praktiknya, penggunaan fungsi Integrasi Monte Carlo membutuhkan pemilihan jumlah sampel acak yang tepat untuk memperkirakan nilai integral dengan akurat. Semakin banyak sampel acak yang diambil, semakin akurat hasil integral yang diperoleh. Oleh karena itu, pemilihan jumlah sampel acak yang optimal adalah kunci untuk mendapatkan hasil integral yang akurat dan efisien.
+
+Salah satu keuntungan dari integrasi Monte Carlo adalah fleksibilitasnya dalam menangani masalah dengan dimensi yang lebih tinggi, serta kemampuannya untuk mengatasi masalah yang memiliki variasi nilai atau bentuk yang kompleks. Namun, teknik ini dapat memakan waktu dan sumber daya yang signifikan karena membutuhkan banyak sampel acak untuk mendapatkan hasil yang akurat.
+
+\section{Integrasi Monte Carlo}
+Misalkan $g(x)$ adalah fungsi dan misalkan kita ingin menghitung $\int_{a}^{b}g(x)dx$ (dengan asumsi bahwa integral ini ada). Ingat bahwa jika X adalah variabel random dengan kepadatan $f(x)$ maka ekspektasi matematis dari variabel random $Y = g(X)$ 
+\begin{equation}
+    E[g(X)]=\int_{-\propto }^{\propto } g(x)f(x)dx
+\end{equation}
+Jika sampel acak tersedia dari distribusi $X$, estimator tidak bias dari $E[g(X)]$ adalah rata-rata sampel.
+\subsection{Simple Monte Carlo Estimator}
+Pertimbangkan masalah estimasi $\theta = \int_{0}^{1}g(x)dx$ jika $X_1,...,X_m$ merupakan seragam random $(0.1)$ sampel kemudian
+\begin{equation}
+    \hat{\theta}=\overline{g_{m}}=\frac{1}{m}\sum_{i=1}^{m}g(X_{i})
+\end{equation}
+Konvergen ke $E\left [ g(X) \right ]=  \hat{\theta}$ dengan peluang 1, hukum kuat bilangan besar. Estimator Monte Carlo sederhana dari $\int_{0}^{1}g(x)dx$ merupakan $gm(X)$.
+
+\begin{example}
+    
+(Integrasi Monte Carlo Sederhana)
+Hitung estimasi Monte Carlo dari
+\begin{equation}
+    \theta =\int_{0}^{1}e^{-x}dx
+\end{equation}
+dan bandingkan taksiran dengan nilai eksaknya.
+\end{example}
+\begin{lstlisting}
+    m <- 10000
+    x <- runif(m)
+    theta.hat <- mean(exp(-x))
+    print(theta.hat)
+    print(1 - exp(-1))
+
+    [1] 0.6355289
+    [1] 0.6321206
+\end{lstlisting}
+Perkiraannya adalah $\hat{\theta}\doteq  0.6355$ dan $\theta = 1-e^{-1}\doteq  0.6321.$
+
+Untuk menghitung $\int_{a}^{b}g(t)dt$, membuat perubahan variabel sehingga batas-batas integrasi adalah dari 0 sampai 1.Transformasi linier $y=(t-a)/(b-a)$ dan $dy=(1-(b/a))dt$ disubtitusikan 
+\begin{equation}
+    \int_{a}^{b}g(t)dt= \int_{0}^{1}g(y(b-a)+a)(b-a)dy.
+\end{equation}
+Kita dapat mengganti kepadatan Uniform (0,1) dengan kepadatan lainnya didukung pada interval antara batas integrasi. Misalnya,
+\begin{equation}
+    \int_{a}^{b}g(t)dt= (b-a)\int_{a}^{b}g(t)\frac{1}{b-a}dt
+\end{equation}
+b-a kali nilai yang diharapkan dari g(Y), dimana Y memiliki kepadatan seragam pada (a,b). Oleh karena itu, integral (b-a) kali nilai rata-rata g(.) di atas (a,b).
+
+\begin{example}
+    (Integrasi Monte Carlo Sederhana). Perkiraan hitung Monte Carlo tentang
+    \begin{equation}
+        \theta= \int_{2}^{4}e^{-x}dx
+    \end{equation}
+    dan membandingkan perkiraan dengan nilai pasti dari integral.
+\end{example}
+\begin{lstlisting}
+    m <- 10000
+    x <- runif(m, min=2, max=4)
+    theta.hat <- mean(exp(-x)) * 2
+    print(theta.hat)
+    print(exp(-2) - exp(-4))
+
+    [1] 0.1172158
+    [1] 0.1170196
+\end{lstlisting}
+Perkiraannya adalah $\hat{\theta}\doteq 0.1172$ dan $\theta= e^{-2}-e^{-4}\doteq 0.1170$.
+Untuk meringkas, penaksir Monte Carlo sederhana dari integral $\theta = \int_{a}^{b}g(x)dx$ 
+dihitung sebagai berikut.\\
+1. Bangkitkan $X1$, . . . ,$Xm$, i.i.d. dari seragam (a, b).\\
+2. Hitung $\overline{g(X)}=\frac{1}{m}g(Xi)$.\\
+3. $\hat{\theta}=(b-a)\overline{g(X)}$.\\
+
+\begin{example}
+    (Integrasi Monte Carlo, Interval Tak Terbatas). Gunakan pendekatan Monte Carlo untuk memperkirakan cdf standar normal
+    \begin{equation}
+        \Phi (x)=\int_{-\infty }^{x}\frac{1}{\sqrt{2\pi }}e^{-t^{^2}/2}dt.
+    \end{equation}
+    Pertama, perhatikan kita tidak dapat menerapkan algoritma diatas secara langsung karena batas integrasi mencakup interval yang tidak berhingga. Namun kita bisa pecah masalah ini menjadi dua kasus: $x\geq 0$ dan $x< 0$, dan gunakan simetri kepadatan normal untuk menangani kasus kedua. Maka masalahnya adalah mengestimasi $\theta = \int_{0}^{x}e^{-t^{2}/2}dt$ untuk $x>0$. Hal ini dapat dilakukan dengan membangkitkan bilangan  random berdistribusi seragam ($0,x$), tetapi itu berarti mengubah parameter distribusi seragam untuk settiap nilai CDF yang berbeda yang diperlukan.
+    Hal Ini dapat dicapai dengan perubahan variabel. Dengan substitusi $y= t/x$ kita peroleh $dt= x dy$ dan
+    \begin{equation}
+        \theta = \int_{0}^{1}xe^{-(xy)^{2}/2}dy
+    \end{equation}
+    Dengan demikian, $\theta = E_{Y}[xe^{-(xY)^{2}/2}]$, dengan variabel random $Y$ berdistribusi uniform (0,1). Bangkitkan bilangan random iid uniform (0,1) $u_{1},...,u_{m}$, dan hitung
+    \begin{equation}
+      \theta = \overline{g_{m}(u)}= \frac{1}{m}\sum_{i=1}^{m}xe^{-(u_{i}x)^{2}/2}.  
+    \end{equation}
+    Rata-rata sampel $\hat{\theta}$ konvergen dengan $E[\hat{\theta}]= \theta $ sebagai $m\rightarrow \infty 
+$. Jika $x>0$, perkiraan $\Phi (x)$ merrupakan $0.5+\hat{\theta}/\sqrt{2\pi }$. Untuk $x<0$, hitung $\Phi (x)= 1-\Phi (-x)$.
+\label{ex-1}
+\end{example}
+
+\begin{lstlisting}
+    x <- seq(.1, 2.5, length = 10)
+    m <- 10000
+    u <- runif(m)
+    cdf <- numeric(length(x))
+    for (i in 1:length(x)){
+        g <- x[i] * exp(-(u * x[i])^2 / 2)
+        cdf[i] <- mean(g) / sqrt(2 * pi) + 0.5
+    }
+\end{lstlisting}
+
+Sekarang perkiraannya $\hat{\theta}$ untuk sepuluh nilai x disimpan dalam vektor cdf. Bandingkan perkiraan dengan nilai $\Phi (x)$ yang dihitung (numerik) oleh fungsi pnorm
+
+\begin{lstlisting}
+    Phi <- pnorm(x)
+    print(round(rbind(x, cdf, Phi), 3))
+\end{lstlisting}
+
+Hasil untuk beberapa nilai $x>0$ ditampilkan dibandingkan dengan nilai fungsi cdf normal pnorm. Perkiraan Monte Carlo tampaknya sangat dekat ke nilai pnorm. 
+
+\begin{lstlisting}
+    [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
+x   0.10 0.367 0.633 0.900 1.167 1.433 1.700 1.967 2.233 2.500
+cdf 0.54 0.643 0.737 0.816 0.879 0.925 0.957 0.978 0.990 0.997
+Phi 0.54 0.643 0.737 0.816 0.878 0.924 0.955 0.975 0.987 0.994
+\end{lstlisting}
+
+\begin{example}
+    Biarkan I(.) menjadi fungsi indikator,dan Z ~ N (0,1). Kemudian untuk setiap konstanta x yang kita miliki $E[I(Z\leq x)]= P(Z\leq x)= \Phi (x)$ cfd standar normal dievaluasi pada x.
+    Hasilkan sampel random $z_{1},...,z_{m}$ dari distribusi normal standar. Kemudian rata-rata sampel
+    \begin{equation}
+        \widehat{\Phi (x)}= \frac{1}{m}\sum_{i=1}^{m}I(z_{i}\leq x)
+    \end{equation}
+    menyatu dengan probabilitas satu ke nilai yang diharapkan $E[I(Z\leq x)]= P(Z\leq x)= \Phi (x)$.
+\end{example}
+\begin{lstlisting}
+    x <- seq(.1, 2.5, length = 10)
+    m <- 10000
+    z <- rnorm(m)
+    dim(x) <- length(x)
+    p <- apply(x, MARGIN = 1,
+             FUN = function(x, z) {mean(z < x)}, z = z)
+\end{lstlisting}
+
+Sekarang perkiraan dalam p untuk urutan nilai x dapat dibandingkan dengan hasil dari fungsi cdf normal R pnorm.
+
+\begin{lstlisting}
+    Phi <- pnorm(x)
+    print(round(rbind(x, p, Phi), 3))
+
+    [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
+x 0.10 0.367 0.633 0.900 1.167 1.433 1.700 1.967 2.233 2.500
+p 0.546 0.652 0.741 0.818 0.876 0.925 0.954 0.976 0.988 0.993
+Phi 0.54 0.643 0.737 0.816 0.878 0.924 0.955 0.975 0.987 0.994
+\end{lstlisting}
+
+Meringkas, jika f(x) adalah fungsi kerapatan probabilitas yang didukung pada pada satu set A, (yaitu, $f(x)\geq 0$ untuk semua $x\epsilon\mathbb{R}$ dan $\int _{A}f(x)= 1$), untuk memperkirakan integral
+\begin{equation}
+    \theta = \int _{A}g(x)f(x)dx,
+\end{equation}
+menghasilkan sampel random $x_{1},...,x_{m}$ dari distribusi f(x), dan menghitung rata-rata sampel.
+\begin{equation}
+    \widehat{\theta }= \frac{1}{m}\sum_{i=1}^{m}g(x_{i})
+\end{equation}
+Kemudian deengan probabilitas satu, $\widehat{\theta }$ menyatu dengan $E[\widehat{\theta }]= \theta $ sebagai $m\rightarrow \infty $
+
+\textbf{Standar kesalahan}
+ $\widehat{\theta }= \frac{1}{m}\sum_{i=1}^{m}g(x_{i})$
+
+Varians dari $\widehat{\theta }$ adalah $\sigma ^{2}/m$ dimana $\sigma ^{2}= Var_{f}(g(X))$. Saat distribusi dari X tidak diketahui, kami menggantikan $F_{X}$ distribusi empiris $F_{m}$ dari sampel $x_{1},...,x_{m}$. Varrians $\widehat{\theta }$ dapat diperkirakan dengan
+\begin{equation}
+    \frac{\widehat{\sigma }}{m}= \frac{1}{m^{2}}\sum_{i=1}^{m}[g(x_{i})-\overline{g(x)}]^{2}
+\end{equation}
+Perhatikan bahwa
+\begin{equation}
+    \frac{1}{m}\sum_{i=1}^{m}[g(x_{i})-\overline{g(x)}]^{2}
+\end{equation}
+adalah perkiraan plug-in $Var(g(X))$. Artinya, (6.2) adalah varians dari U, dimana U didistribusikan secara seragam pada himpunan replikasi ${g(x_{i})}$. Perkiraan yang sesuai dari kesalahan standar $\widehat{\theta }$ adalah
+\begin{equation}
+    \widehat{se}(\widehat{\theta })= \frac{\widehat{\sigma }}{\sqrt{m}}= \frac{1}{m}\begin{Bmatrix}
+\sum_{i=1}^{m}[g(x_{i})-\overline{g(x)}]^{2}
+\end{Bmatrix}^{1/2}
+\end{equation}
+Teorema limit pusat mengatakan bahwa
+\begin{equation}
+    \frac{\widehat{\theta }-E[\widehat{\theta }]}{\sqrt{Var\widehat{\theta }}}
+\end{equation}
+
+Konvergen dalam distribusi ke N (0,1) sebagai $m\rightarrow \infty $. Oleh karena itu, jika m cukup besar,$\widehat{\theta }$ kira-kira normal dengan rata-rata $\theta$. Sampel besar kira-kira distribusi normal $\widehat{\theta }$ dapat diterapkan untuk menempatkan batas kepercayaan atau batas error pada perkiraan Monte Carlo dari integral, dan periksa konvergensi
+
+\begin{example}
+    (Batas Kesalahan Untuk Integrasi Monte Carlo). Perkirakan varians dari penaksir dalam contoh 6.4, dan membangun kepercayaan 95% interval untuk perkiraan $\Phi (2)$ dan $\Phi (2.5)$
+\end{example}
+
+\begin{lstlisting}
+    x <- 2
+    m <- 10000
+    z <- rnorm(m)
+    g <- (z < x)  #the indicator function
+    v <- mean((g - mean(g))^2) / m
+    cdf <- mean(g)
+    c(cdf, v)
+    c(cdf - 1.96 * sqrt(v), cdf + 1.96 * sqrt(v))
+
+    [1] 9.772000e-01 2.228016e-06
+    [1] 0.9742744 0.9801256
+\end{lstlisting}
+
+Probabilitas $P(I(Z < x)= 1)$ adalah $\Phi (2)\approx 0.977$. Disini $g(x)$ memiliki distribusi proporsi sampel 1 dalam $m= 10000$ percobaan bernoulli dengan $p\doteq 0.977$ dan varians $g(X)$ oleh karena itu $(0.977)(1-0.977)/10000= 2.223e-06$. Perkiraan Monte Carlo $2.223e-06$ varrians cukup dekat dengan nilai ini.
+
+Untuk $x= 2.5$ outputnya adalah
+
+\begin{lstlisting}
+    [1] 9.772000e-01 2.228016e-06
+    [1] 0.9742744 0.9801256
+\end{lstlisting}
+
+Probabilitas $P(I(Z < x)= 1)$ adalah $\Phi (2.5)\approx 0.995$. Perkiraan Monte Carlo $5.272e-07$ varians kira-kira sama dengan nilai teoretis $(0.995)(1-0.995)/10000= 4.975e-07$.
+
+\subsection{Varians dan Efisiensi}
+Pendekatan Monte Carlo untuk menaksir integral $\int_{a}^{b}g(x)dx$ adalah untuk mewakili integral sebagai nilai yang diharapkan dari fungsi variabel random yang seragam.
+Artinya, jika $X$ $\sim$ seragam(a,b), lalu $f(x)$=$\frac{1}{b-a}$,$a<x<b$, dan
+\begin{equation}
+    \theta=\int_{a}^{b}g(x)dx
+    =(b-a)=(b-a)\int_{a}^{b}g(x)\frac{1}{b-a}dx=(b-a)E[g(X)]
+\end{equation}
+Ingatlah bahwa penaksir rata-rata sampel Monte Carlo dari integral adalah
+dihitung sebagai berikut.\\
+1. Bangkitkan $X1$, . . . ,$Xm$, i.i.d. dari seragam (a, b).\\
+2. Hitung $\overline{g(X)}=\frac{1}{m}g(Xi)$.\\
+3. $\hat{\theta}=(b-a)\overline{g(X)}$.\\
+Rata-rata sampel $\overline{g(X)}$ memiliki nilai harapan $g(X)=\theta/(b-a)$, dan ${Var}\overline{(g(X))}=(1/m){Var}(g(X))$.\\
+Oleh karena itu,$E[{\hat{\theta}}]=\theta$ dan
+\begin{equation}
+{Var(\hat{\theta})}=(b-a)^2{Var(\overline{g(X)})}=\frac{(b-a)^2}{m}{Var(g(X))}
+\label{eqn:label1}
+\end{equation}
+Menurut Teorema Limit Sentral, untuk nilai $m$ yang besar, $\overline{g(X)}$ kurang lebih berdistribusi normal, dan oleh karena itu $\hat{\theta}$ kurang lebih berdistribusi normal dengan rata-rata $\theta$ dan varians yang diberikan oleh persamaan \eqref{eqn:label1}.\\
+Pendekatan "hit-or-miss" untuk integrasi Monte Carlo juga menggunakan rata-rata sampel untuk memperkirakan integral, tetapi rata-rata sampel diambil dari sampel yang berbeda dan oleh karena itu pengestimasi ini memiliki varian yang berbeda dengan formula \eqref{eqn:label1}.\\
+Anggaplah $f(x)$ adalah kepadatan dari variabel acak $X$. Pendekatan "hit-or-miss" untuk memperkirakan $F(x)=\int_{-\infty }^{x}f(t)dt$ adalah sebagai berikut.\\
+1. Bangkitkan sampel acak $X1$, . . . , $Xm$ dari distribusi X.\\
+2. Untuk setiap observasi $Xi$, hitung\\
+$g(Xi)=I(Xi\leq x)=\left\{\begin{matrix}
+1,   Xi\leq x;& \\ 
+0,   Xi>x. & 
+\end{matrix}\right.$\\
+3. Hitung $\widehat{F(x)}=\overline{g(X)}=\frac{1}{m}\sum_{i=1}^{m}I(Xi\leq x).$\\
+Perhatikan bahwa variabel acak $Y = g(X)$ memiliki distribusi Binomial(1, $p$), di mana probabilitas keberhasilan adalah $p = P(X \leq x) = F(x).$ Sampel transformasi $Y1$, . . . , $Ym$ adalah hasil dari $m$ uji coba Bernoulli yang independen dan identik. Pengestimasi $\widehat{F(x)}$ adalah proporsi sampel $\hat{p} = y/m$, di mana y adalah jumlah total keberhasilan yang diamati dalam m uji coba. Dengan demikian, $E[\widehat{F(x)}]=p=F(x)$ dan $Var(\widehat{F(x)})=p(1-p)/m=F(x)(1-F(x))/m$.\\
+Varian dari $\widehat{F(x)}$ dapat diestimasi oleh $\hat{p}(1-\hat{p})/m =\widehat{F(x)}(1-\widehat{F(x)})/m$. Varian maksimum terjadi ketika $F(x) = 1/2$, sehingga estimasi konservatif dari varians $\widehat{F(x)}$ adalah 1/(4$m$).\\
+Jika $\hat{\theta_1}$ dan $\hat{\theta_2}$ adalah dua pengestimasi untuk $\theta$, maka $\hat{\theta_1}$ lebih efisien (dalam arti statistik) dari $\hat{\theta_2}$ jika\\
+\begin{equation}
+    \frac{Var(\hat{\theta_1})}{Var(\hat{\theta_2})}< 1
+\end{equation}
+Jika varian dari pengestimasi $\hat{\theta_1}$ tidak diketahui, kita dapat mengestimasi efisiensi dengan mengganti estimasi sampel dari varians untuk setiap estimator. Perlu dicatat bahwa varians selalu dapat dikurangi dengan meningkatkan jumlah replikasi, sehingga efisiensi komputasi juga relevan.
+\section{Reduksi Varians}
+Kita telah melihat bahwa integrasi Monte Carlo dapat diterapkan untuk mengestimasi fungsi tipe $E[g(X)]$. Pada bagian ini, kita mempertimbangkan beberapa pendekatan untuk mengurangi varian dalam pengestimasi rata-rata sampel dari $\theta=E[g(X)]$.\\
+Jika $\hat{\theta_1}$ dan $\hat{\theta_2}$ adalah pengestimasi dari parameter $\theta$ dan $Var\hat{(\theta_2)} < Var\hat{(\theta_1)}$, maka persentase pengurangan varian yang dicapai dengan $\hat{\theta_2}$ alih-alih menggunakan $\hat{\theta_1}$ adalah
+\begin{equation}
+    100\left ( \frac{Var\hat{(\theta_1)}-Var\hat{(\theta_2)}}{Var\hat{(\theta_1)}} \right )
+\end{equation}
+Metode Monte Carlo untuk mengestimasi $\theta$ = $E[g(X)]$ adalah dengan menghitung rata-rata sampel $\overline{g(X)}$ untuk sejumlah besar replikasi $m$ dari distribusi $g(X).$ Fungsi $g(.)$ seringkali merupakan statistik; yaitu, fungsi n-variabel $g(X1, . . . ,Xn)$ dari sebuah sampel. Ketika $g(X)$ digunakan dalam konteks tersebut, kita memiliki $g(\chi ) = g(X1, . . . ,Xn)$, di mana $\chi$ merujuk pada elemen sampel. Kecuali tidak jelas dalam konteks, namun untuk kesederhanaan kita menggunakan $g(X)$.\\
+Misal
+\begin{equation}
+    X^{(j)}=\left \{ X_{1}^{(j)}, . . . ,X_{n}^{(j)} \right \}, j=1,. . . ,m
+\end{equation}
+Asumsi terdapat iid dari distribusi $X$, dan hitung replika yang sesuai.
+\begin{equation}
+        Y^{j}={g(X_{1}^{(j)}, . . . ,gX_{n}^{(j)})}, j=1,. . . ,m.
+        \label{eqn:label2}
+\end{equation}
+Maka $Y1$, . . . , $Ym$ adalah iid dengan distribusi $Y = g(\chi)$, dan
+\begin{equation}
+    E|\overline{Y}|=E\begin{bmatrix}
+\frac{1}{m}\sum_{j=1}^{m} Y_{j}
+\end{bmatrix}=\theta
+\end{equation}
+Dengan demikian, pengestimasi Monte Carlo $\hat{\theta} = \overline{Y}$ adalah tidak biasa untuk $\theta = E[Y]$. Varians pengestimasi Monte Carlo adalah
+\begin{equation}
+Var(\hat{\theta})=Var\overline{Y}=\frac{Var_{f}g(X)}{m}.
+\end{equation}
+
+Menambah jumlah replikasi $m$ jelas mengurangi varians dari pengestimasi Monte Carlo. Namun, peningkatan yang besar pada $m$ diperlukan untuk mendapatkan perbaikan kecil pada kesalahan standar. Untuk mengurangi kesalahan standar dari 0,01 menjadi 0,0001, kita membutuhkan sekitar 10000 kali jumlah replikasi. Secara umum, jika kesalahan standar harus paling banyak $e$ dan $Var_f(g(X))=\sigma ^2$, maka diperlukan $m\geq[\sigma^2/e^2]$ replikasi.
+
+Oleh karena itu, meskipun varians selalu dapat dikurangi dengan meningkatkan jumlah replikasi Monte Carlo, biaya komputasinya tinggi. Metode lain untuk mengurangi varians dapat diterapkan yang kurang mahal secara komputasi daripada hanya meningkatkan jumlah replikasi.
+\section{Variabel Antitetik}
+Pertimbangkan rata-rata dua variabel random yang didistribusikan secara identik $U_{1}$ dan $U_{2}$. Jika $U_{1}$ dan $U_{2}$ independen, maka
+\begin{equation}
+    Var\bigl(\begin{smallmatrix}
+\frac{U_{1}+U_{2}}{2}
+\end{smallmatrix}\bigr)= \frac{1}{4}(Var(U_{1})+Var(U_{2})),
+\end{equation}
+tetapi secara umum
+\begin{equation}
+    Var\bigl(\begin{smallmatrix}
+\frac{U_{1}+U_{2}}{2}
+\end{smallmatrix}\bigr)= \frac{1}{4}(Var(U_{1})+Var(U_{2})+2Cov(U_{1},U_{2})),
+\end{equation}
+
+Jadi varians $(U_{1}+U_{2})/2$ lebih kecil jika $U_{1}$ dan $U_{2}$ berkorelasi negatif daripada ketika variabel independen.Fakta ini membuat kita mempertimbangkan variabel yang berkorelasi negatif sebagai metode yang mungkin untuk mengurangi varians.
+
+Contoh, Anggaplah $X_{1},...,X_{n}$ disimulasikan melalui metode transformasi terbalik. Untuk masing-masing replikasi m, telah menghasilkan $Uj\sim Uniform(0,1)$ dan menghitung $X^{(j)}= F_{X}^{-1}(U_{j}), j= 1,...,n$. Perhatikan bahwa jika U didistribusikan secara seragam pada $(0,1)$, maka $1-U$ memiliki distribusi yang sama dengan U, tetapi U dan $1-U$ berkorelasi negatif. Kemudian di \eqref{eqn:label2}
+\begin{equation}
+    Y_{j}= g(F_{X}^{-1}(U_{1}^{(j)}),...,F_{X}^{-1}(U_{n}^{(j)}))
+\end{equation}
+
+memiliki distribusi yang sama dengan
+\begin{equation}
+    Y_{j}^{'}= g(F_{X}^{-1}(1-U_{1}^{(j)}),...,F_{X}^{-1}(1-U_{n}^{(j)}))
+\end{equation}
+
+Dalam kondisi apa $Y_{j}$ dan $Y_{j}^{{}'}$ berkorelasi negatif? Dibawah menunjukkan bahwa jika fungsi $g$ monoton, variabel $Y_{j}$ dan $Y_{j}^{{}'}$ berkorelasi negatif.
+
+Definisi $(x_{1},...,x_{n})\leq (y_{1},...,y_{n})$ jika $x_{j}\leq y_{j},j= 1,...,n$. Fungsi n-variate $g= g(X_{1},...,X_{n})$ meningkat jika meningkat koordinatnya. Artinya $g$ meningkat jika $g(x_{1},...,x_{n})\leq g(y_{1},...,y_{n})$ setiap kali $(x_{1},...,x_{n})\leq (y_{1},...,y_{n})$. Demikian pula $g$ menurun jika menurun dalam koordinat. Maka $g$ monoton jika meningkat atau menurun.
+\begin{prop}
+    Jika $X_{1},...,X_{n}$ independen, dan $f$ dan $g$ meningkatkan fungsi, maka
+    \begin{equation}
+        E[f(X)g(X)]\geq E[f(X)]E[g(X)]
+        \label{eqn:label3}
+    \end{equation}
+\end{prop}
+
+\begin{proof}
+  Asumsikan bahwa $f$ dan $g$ meningkatn fungsi. Buktinya adalah dengan induksi pada n. Misalkan $n=1$. Kemudian $(f(x)-f(y))(g(x)-g(y))\geq 0$ untuk semua $x,y\epsilon \mathbb{R}$
+    Maka $E[(f(X)-f(Y))(g(X)-g(Y))]\geq 0$, dan
+    
+    \begin{equation}
+        E[f(X)g(X)]+E[f(Y)g(Y)]\geq E[f(X)g(Y)]+E[f(Y)g(X)]
+    \end{equation}
+    Disini X dan Y adalah iid, jadi
+    \begin{equation}
+    2E[f(X)g(X)]=E[f(X)g(X)]+E[f(Y)g(Y)]
+    \geq E[f(X)g(Y)]+E[f(Y)g(X)]= 2E[f(X)]E[g(X)],
+    \end{equation}
+    
+    Jadi pernyataan itu benar untuk $n=1$. Misalkan pernyataan \eqref{eqn:label3} itu benar untuk $X\epsilon \mathbb{R}^{n-1}$. Kondisi pada $X_{n}$ dan menerapkan hipotesis induksi untuk mendapatkan
+    
+    \begin{equation}
+    E[f(X)g(X)|X_{n}=x_{n}]\geq E[f(X_{1},...,X_{n-
+    1},x_{n})]E[g(X_{1},...,X_{n-1},x_{n})]
+    = E[f((X)|X_{n}= x_{n})]E[g((X)|X_{n}=x_{n})],
+    \end{equation}
+    
+    atau
+    
+    \begin{equation}
+    E[f(X)g(X)|X_{n}]\geq E[f(X)|X_{n}]E[g(X)|X_{n}].
+    \end{equation}
+    
+    Sekarang $E[f(X)|X_{n}]$ dan $E[g(X)|X_{n}]$ adalah masing-masing fungsi $X_{n}$ yang meningkat, jadi menerapkan hasilnya untuk $n=1$ dan mengambil nilai yang diharapkan dari kedua sisi.
+    
+    \begin{equation}
+        E[f(x)g(X)]\geq E[E[f(X)|X_{n}]E[g(X)|X_{n}]]\geq E[f(X)]E[g(X)]
+    \end{equation}
+\end{proof}
+
+\begin{corollary}
+Jika $g=g(X_{1},...,X_{n})$ monoton, maka
+\begin{equation}
+    Y=g(F_{X}^{-1}(U_{1}),...,F_{X}^{-1}(U_{n}))
+\end{equation}
+dan
+\begin{equation}
+    Y^{{}'}=g(F_{X}^{-1}(U_{1}),...,F_{X}^{-1}(U_{n}))
+\end{equation}
+berkorelasi negatif.
+\label{co:c1}
+\end{corollary}
+\begin{proof}
+    Tanpa kehilangan generalitas kita dapat mengira bahwa g meningkat. kemudian
+    \begin{equation}
+        Y=g(F_{X}^{-1}(U_{1}),...,F_{X}^{-1}(U_{n}))
+    \end{equation}
+    dan
+    \begin{equation}
+        -Y^{{}'}=f=-g(F_{X}^{-1}(1-U_{1}),...,F_{X}^{-1}(1-U_{n}))
+    \end{equation}
+    Keduanya meningkatkan fungsi. Jadi $E[g(U)f(U)]\geq E[g(U)]E[f(U)]$ dan $E[YY^{{}'}]< E[Y]E[Y^{{}'}]$, yang menyiratkan bahwa
+    \begin{equation}
+        Cov(Y,Y^{{}'})=E[YY^{{}'}]-E[Y]E[Y^{{}'}]\leq 0,
+    \end{equation}
+    jadi $Y$ dan $Y^{{}'}$ berkorelasi negatif.
+
+    Pendekatan variabel antitesis mudah diterapkan. Jika replikasi $m$ Monte Carlo diperlukan, hasilkan replikasi $m/2$
+    \begin{equation}
+        Y_{j}=g(F_{X}^{-1}(U_{1}^{j}),...,F_{X}^{-1}(U_{n}^{j}))
+    \end{equation}
+    dan sisa $m/2$ mereplikasi
+    \begin{equation}
+        Y_{j}^{{}'}=g(F_{X}^{-1}(1-U_{1}^{j}),...,F_{X}^{-1}(1-U_{n}^{j}))
+    \end{equation}
+di mana $U_{i}^{(j)}$ adalah variabel Uniform(0,1) yang iid, $i$ = 1, . . . , $n$, $j$ = 1, . . . ,$m$/2. Maka estimasi antitesisnya adalah
+\begin{equation}
+    \hat{\theta}=\frac{1}{m}\left \{ Y_{1} + Y_{1}^{{}'} + Y_{2} + Y_{2}^{{}'}+...+ Y_{m}/2 + Y_{m}^{{}'}/2 \right \}
+\end{equation}
+\begin{equation*}
+ =\frac{2}{m}\sum{j=1}^{m/2}\left ( \frac{ Y_{j} + Y_{j}^{{}'}}{2} \right ).   
+\end{equation*}    
+Dengan demikian, dibutuhkan $nm/2$ variabel acak seragam daripada $nm$ variabel acak seragam, dan varian pengestimasi Monte Carlo dikurangi dengan menggunakan variabel antitesis.
+\end{proof}   
+ \begin{example}
+(Variabel antitesis). Merujuk pada \cref{ex-1}, Menggambarkan integrasi Monte Carlo yang diterapkan untuk mengestimasi fungsi distribusi kumulatif normal standar. 
+ \begin{equation*}
+             \Phi (x)\int_{-\infty }^{x}\frac{1}{\sqrt{2\pi }}e^{-t^{^2}/2}dt.
+ \end{equation*}
+ Ulangi estimasi menggunakan variabel antitesis, dan temukan perkiraan pengurangan kesalahan standar. Pada contoh ini (setelah perubahan variabel) parameter sasarannya adalah $\theta = E_{U}[xe^{-(x_{U})^2/2}]$, di mana $U$ memiliki distribusi Uniform(0,1).\\
+ Dengan membatasi simulasi pada sisi atas(lihat \cref{ex-1}), fungsi $g(.)$ monoton, sehingga hipotesis Corollary \ref{co:c1} terpenuhi. Bangkitkan bilangan acak $u1$, . . ., $um/2$ $\sim$ Uniform(0, 1) dan hitung separuh dari replika menggunakan
+ \begin{equation}
+     Y_{j}=g^{(j)}(u)=xe^{-(ujx)^2/2},j=1,. . .,m/2
+ \end{equation}
+ seperti sebelumnya, tetapi hitung separuh replika yang tersisa dengan menggunakan
+ \begin{equation}
+     Y_{j}^{{}'}=xe^{-((1-uj)x)^2/2},j=1,. . .,m/2.
+ \end{equation}
+ Sampel itu berarti
+ \begin{equation}
+     \hat{\theta}=\overline{g_{m}(u)}=\frac{1}{m}\sum_{j=1}^{m/2}\left ( xe^{-(ujx)^2/2} + xe^{-((1-uj)x)^2/2} \right )
+ \end{equation}
+ \begin{equation*}
+     =\frac{1}{m/2}\sum_{j=1}^{m/2}\left ( \frac{xe^{-(ujx)^2/2} + xe^{-((1-uj)x)^2/2}}{2} \right )
+ \end{equation*}
+ Maka, konvergen ke $E[\hat{\theta}]=\theta$ saat $m\rightarrow \infty$. Jika $x>0$, maka pengestimasi dari $\Phi (x)$ adalah $0,5+\hat{\theta}/\sqrt{2\pi }$. Jika $x<0$ perhitungan dari $\Phi (x)=1-\Phi(-x)$. Estimasi Monte Carlo dari integral  $\Phi (x)$ diimplementasikan dalam fungsi \textbf{MC.Phi} di bawah ini. Secara opsional, \textbf{MC.Phi} akan menghitung estimasi dengan atau tanpa sampel antitesis. Fungsi \textbf{MC.Phi} dapat dibuat lebih umum jika argumen yang menamai fungsi, yaitu integrand, ditambahkan (lihat \textbf{integrate} untuk contoh jenis argumen ini ke fungsi).
+ \end{example}
+\begin{lstlisting}
+MC.Phi <- function(x, R = 10000, antithetic = TRUE) {
+u <- runif(R/2)
+if (!antithetic) v <- runif(R/2) else
+v <- 1 - u
+u <- c(u, v)
+cdf <- numeric(length(x))
+for (i in 1:length(x)) {
+g <- x[i] * exp(-(u * x[i])^2 / 2)
+cdf[i] <- mean(g) / sqrt(2 * pi) + 0.5
+  }
+  cdf
+}
+\end{lstlisting}
+Perbandingan perkiraan yang diperoleh dari satu eksperimen Monte Carlo adalah sebagai berikut.
+\begin{lstlisting}
+x <- seq(.1, 2.5, length=5)
+Phi <- pnorm(x)
+set.seed(123)
+MC1 <- MC.Phi(x, anti = FALSE)
+set.seed(123)
+MC2 <- MC.Phi(x)
+print(round(rbind(x, MC1, MC2, Phi), 5))
+
+[,1]    [,2]    [,3]    [,4]    [,5]
+x   0.10000 0.70000 1.30000 1.90000 2.50000
+MC1 0.53983 0.75825 0.90418 0.97311 0.99594
+MC2 0.53983 0.75805 0.90325 0.97132 0.99370
+Phi 0.53983 0.75804 0.90320 0.97128 0.99379
+\end{lstlisting}
+Pengurangan perkiraan variansi dapat diestimasi untuk x tertentu dengan menyimulasikan ke dalam dua metode ini, yaitu pendekatan integrasi Monte Carlo sederhana dan pendekatan variabel antitesis.
+\begin{lstlisting}
+m <- 1000
+MC1 <- MC2 <- numeric(m)
+x <- 1.95
+for (i in 1:m) {
+  MC1[i] <- MC.Phi(x, R = 1000, anti = FALSE)
+  MC2[i] <- MC.Phi(x, R = 1000)
+}
+print(sd(MC1))
+print(sd(MC2))
+print((var(MC1) - var(MC2))/var(MC1))
+
+> print(sd(MC1))
+[1] 0.007018498
+> print(sd(MC2))
+[1] 0.0004773876
+> print((var(MC1) - var(MC2))/var(MC1))
+[1] 0.9953735
+\end{lstlisting}
+Maka, pendekatan variabel antitesis mencapai pengurangan varians sekitar 99,5\% pada $x=1.95.$
+
+
+
+
+\newpage
+\printbibliography[heading=bibintoc,title={Daftar Pustaka}]
+\end{document}

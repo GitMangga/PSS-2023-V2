@@ -1,0 +1,794 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage{graphicx, amsthm, enumerate, parskip}
+\usepackage{amsmath, amssymb, amsthm}
+\theoremstyle{definition}
+\newtheorem{definition}{Definisi}[section]
+\newtheorem{theorem}{Teorema}[section]
+\newtheorem{example}{Contoh}[section]
+\usepackage{listings, fancyvrb, spverbatim, xcolor}
+\lstset{% setup listings
+    language=R,% set programming language
+    frame=tb,
+    basicstyle=\ttfamily\small,% basic font style
+    keywordstyle=\color{blue},% keyword style
+    commentstyle=\color{gray},% comment style
+    breaklines=true,% automatic line breaking
+    fancyvrb=true,% verbatim code is typset by listings
+}
+\usepackage[
+    backend=biber,
+    style=bwl-FU,
+    sorting=nyt,
+    maxbibnames=99,
+    natbib=true,
+]
+{biblatex}
+\addbibresource{DPustaka.bib}
+
+
+%% ---------------------------
+\begin{document}
+    \title{Aplikasi Resampling}
+    \author{Putri Nadila 4112321006\\
+    Devita Abellia R 4112321010\\
+    Ananda Maya Oktavia 4112321027}
+\date{\today}
+\begin{titlepage}
+    \maketitle
+\end{titlepage}
+
+\section{Pendahuluan}
+Metode resampling dan simulasi untuk model regresi dapat berlaku beragam metode yang dibahas dalam bab sebelumnya. Dalam Bab 8 kita telah melihat penerapan pisau lipat untuk pemilihan model dalam regresi. Ini ilustrasi cross-validation adalah contoh sederhana yang populer dan ampuh metode yang banyak diterapkan dalam pembelajaran statistika. Model linier sangat mendasar dalam statistik, jadi bab ini membahas beberapa contoh simulasi untuk
+model regresi. Jackknife-after-bootstrap adalah teknik lain yang berguna kami telah secara implisit menerapkannya di Bab 8 dengan metode komputasi dasar untuk interval kepercayaan bootstrap BCa. Dalam bab ini beberapa detail dan aplikasi jackknife-after-bootstrap seperti empiris nilai-nilai pengaruh dibahas. Banyak referensi tersedia untuk topik ini. Untuk resampling dan model linier, Faraway [94, 95], Fox [100], dan Davison dan Hinkley [68] adalah sumber daya bagus yang menampilkan implementasi di R. Juga lihat Bab 3 dalam James et al. [157] dan Bab 6 dalam Venables dan Ripley [293]. Buku teks lain tentang analisis regresi terapan termasuk Fox [100], Kutner et al. [173], Mendenhall dan Sincich [202], Montgomery et al. [211], dan Weiberg [310]. Lihat James dkk. [157] untuk pengantar variabel yang dapat diakses seleksi, validasi, validasi silang, dan aplikasi dalam mata pelajaran umum dari penambangan data.
+
+\section{Jacknife Setelah Bootstrap}
+Dalam Bab 8, perkiraan bootstrap dari kesalahan standar dan bias diperkenalkan. Perkiraan ini adalah variabel acak. Jika kita tertarik dengan varians dari perkiraan ini, satu ide adalah mencoba jackknife. Ingat bahwa $\widehat{se}(\widehat{\theta})$ adalah contoh simpangan baku replikasi bootstrap B dari $\widehat{\theta}$. Sekarang, jika kita meninggalkan $1^{th}$ observasi, algoritma untuk estimasi kesalahan standar adalah untuk resample B mereplikasi dari $n-1$ pengamatan yang tersisa untuk setiap i. Dengan kata lain, kami akan meniru bootstrap itu sendiri. Untungnya, ada cara untuk menghindari replikasi bootstrap.Jackknife-after-bootstrap menghitung perkiraan untuk setiap sampel "leave-oneout".  Biarkan $J(i)$ menunjukkan indeks sampel bootstrap yang tidak mengandung $x_{i}$, dan biarkan $B(i)$ menunjukkan jumlah sampel bootstrap yang melakukannya tidak mengandung $x_{i}$. Kemudian kita dapat menghitung replikasi jackknife yang tertinggal sampel $B-B(i)$ yang mengandung $x_{i}$ [91, hlm. 277]. Perkiraan jackknife dari kesalahan standar dihitung dengan rumus (8.4). Menghitung:\\
+
+$\widehat{se}(\widehat{\theta})= \widehat{se}_{jack}(\widehat{se}_{B(1))}, ...,\widehat{se}_{B(n))}),$\\
+
+$\widehat{se}_{B(i)}=\sqrt{\frac{1}{B_{(i)}}\sum_{j\epsilon J(i))}^{} [\widehat{\theta_{(j)}} -\overline{\widehat{\theta}_{(J(i))}}]^{2}}$\\
+
+$\overline{\widehat{\theta}_{(J(i))}}=\frac{1}{B_{i}}\sum_{j\epsilon J_{(i)}}^{}\widehat{\theta_{(j)}}$\\
+
+adalah rata-rata sampel dari perkiraan dari sampel jackknife leave-xi-out. Untuk jackknife-after-bootstrap, akan lebih mudah menggunakan fungsi boot untuk bootstrap, karena fungsi boot.array kemudian dapat digunakan untuk mengambil array yang mencatat indeks atau frekuensi pengamatan di masing-masing sampel bootstrap.\\
+
+Contoh 9.1\\ 
+
+(Jackknife-setelah-bootstrap). Gunakan jackknife-after-bootstrap prosedur untuk memperkirakan kesalahan standar $\widehat{se}(\widehat{\theta})$ untuk data patch dalam contoh 8.7.\\
+\begin{spverbatim}
+library(boot)
+library(bootstrap)
+set.seed(1111)
+theta.boot <- function(patch, i) {
+    # fungsi untuk menghitung statistik rasio patch
+y <- patch[i, "y"]
+z <- patch[i, "z"]
+mean(y) / mean(z)
+}
+boot.out <- boot(bootstrap::patch,
+statistic = theta.boot, R=2000)
+\end{spverbatim}
+
+Secara default, fungsi boot.array mengembalikan frekuensi sampel. Beberapa baris pertama array ditunjukkan di bawah ini.\\
+
+\begin{spverbatim}
+> A <- boot.array(boot.out)
+> head(A, 3)
+[,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8]
+[1,] 0 1 2 1 2 1 1 0
+[2,] 0 1 0 1 2 2 2 0
+[3,] 0 1 1 0 0 3 1 2
+\end{spverbatim}
+
+Di atas kita dapat melihat bahwa pengamatan (1) dihilangkan dari tiga yang pertama sampel, observasi (8) dihilangkan dari dua sampel pertama, dll. Untuk besar n, probabilitas bahwa pengamatan (1) dihilangkan dari sampel bootstrap adalah sekitar $e^{-1}=0,3678794$ . Dalam contoh ini, proporsi sampel yang menghilangkan (1) mendekati $e^{-1}$ :\\
+
+\begin{spverbatim}
+> mean(A[, 1] == 0)
+[1] 0.328
+\end{spverbatim}
+
+Sampel leave-one-out $J(i)$ yang menghilangkan pengamatan ke-i adalah sampel bootstrap sedemikian rupa sehingga $A[ ,i] == 0$ adalah benar. Jackknife-after-bootstrap dapat menggunakan sampel leave-one-out ini untuk memperkirakan bias dan kesalahan standar menghemat kebutuhan akan bootstrap bersarang.Bootstrap replikasi $\widehat{\theta}^{2}$ sudah dihitung sebelumnya, jadi dalam menerapkan jackknife-after-bootstrap kita hanya perlu "mencari" replikasi yang sesuai $\widehat{\theta}^{2}$.\\ 
+
+\begin{spverbatim}
+# jackknife setelah bootstrap ke est. se(se)
+A <- boot.array(boot.out)
+theta.b <- boot.out$t
+n <- NROW(patch)
+jack.se <- numeric(n)
+for (i in 1:n){ 
+#pada ulangan ke-i hilangkan semua sampel dengan x[i]
+keep <- which(A[, i] == 0)
+jack.se[i] <- sd(theta.b[keep])
+}
+
+print(boot.obj) #for se_boot
+se.bar <- mean(jack.se)
+se.se <- sqrt((n-1) * mean((jack.se - se.bar)^2))
+print(paste("Jackknife-after-bootstrap est. se(se)=", se.se))
+\end{spverbatim} 
+
+Perkiraan bootstrap dari kesalahan standar adalah 0,10305 dan perkiraan jackknife-afterbootstrap dari kesalahan standarnya adalah 0,030857.\\
+
+Contoh 9.2\\
+(Jackknife-setelah-bootstrap). Perkiraan bootstrap se adalah itu sendiri variabel acak. Apa kesalahan standar $\widehat{se}_{boot}$? Melainkan menjalankan bootstrap-within-bootstrap bersarang, kita dapat menerapkan jackknife-afterbootstrap untuk memperkirakan $se(\widehat{se}_{boot})$. Dalam contoh ini kami memperkirakan standar kesalahan $\widehat{se}_{boot}$ untuk data patch.\\
+
+\begin{spverbatim}
+    # initialize
+data(patch, package = "bootstrap")
+y <- patch$y
+z <- patch$z
+dat <- cbind(y, z)
+n <- NROW(dat)
+B <- 2000
+# jackknife setelah bootstrap langkah 1: run the bootstrap
+theta_boot <- function(dat, ind) {
+# function to compute the statistic
+y <- dat[ind, 1]
+z <- dat[ind, 2]
+mean(y) / mean(z)
+}
+boot.obj <- boot(dat, statistic = theta_boot, R=2000)
+theta.hat <- boot.obj$t0
+theta.b <- boot.obj$t
+se.boot <- sd(theta.b)
+
+#jackknife setelah bootstrap ke est. se(se)
+sample.freq <- boot.array(boot.obj)
+se.se.reps <- numeric(n)
+N <- 1:n
+
+for (i in N) {
+    # jackknife setelah bootstrap
+    # hilangkan semua sampel bootstrap yang mengandung obs i
+keep <- which(sample.freq[, i] == 0)
+se.se.reps[i] <- sd(theta.b[keep])
+}
+
+print(boot.obj)
+se.bar <- mean(se.se.reps)
+se.se <- sqrt((n-1) * mean((se.se.reps - se.bar)^2))
+se.se
+\end{spverbatim}
+
+Nilai cetak objek bootstrap mencakup perkiraan 0,1004 untuk kesalahan standar, dan perkiraan jackknife-after-bootstrap $se(se)$ adalah 0,0291. Untuk referensi selanjutnya, berikut adalah replikasi jackknife untuk $se(se)$:\\
+\begin{spverbatim}
+    > round(se.se.reps, 5)
+[1] 0.10969 0.07371 0.10344 0.09041 0.10005 0.10113 0.10241 0.10905
+\end{spverbatim}
+
+
+
+\section{Resampling untuk Model Regresi}
+
+Untuk model regresi linier sederhana dengan respons Y dan prediktor tunggal X, model yang diasumsikan dapat ditulis\\
+
+$Y_{j}=\beta _{0}+\beta _{1}x_{j}+\varepsilon _{j},j=1....,n,$ \\
+
+di mana $\epsilon$ tidak berkorelasi, dengan rata-rata nol, dan varian yang sama $\sigma ^{2}$  Selain itu, sering diasumsikan bahwa kesalahan terdistribusi secara normal untuk inferensi tentang estimasi parameter dan prediksi.Untuk regresiberganda dengan respons Y dan prediktor p prediksi $X_{1},...,X_{p},$ model biasanya ditulis dalam matriks bentuk sebagai\\
+$Y=X\beta +\varepsilon,$  \\
+di mana Y adalah vektor $n\times 1$  dari respons yang diamati, X adalah desain $n\times\left ( p+1 \right )$. matriks, $\beta$ adalah vektor parameter $\left (p+1  \right )\times 1$, dan galat $\epsilon$ tidak berkorelasi dengan rata-rata nol dan varian yang sama.\\
+Ketika model regresi yang ditentukan diasumsikan benar, respons ekspektasi bersyarat $E\left [ Y\mid X \right ]$ diasumsikan linier. Jika linearitas ini benar, pendekatan kesalahan resampling mungkin dapat diterapkan. Dalam situasi tertentu, seperti memodelkan data yang harus mengikuti suatu yang diketahui hukum fisika, atau model ilmiah lainnya, seseorang mungkin memiliki keyakinan yang kuat bahwa model yang ditentukan benar. Dalam banyak masalah lain, ini tidak terjadi kasus-kasus tersebut, metode yang lebih tepat adalah menerapkan resampling kasus.\\
+
+Contoh Regresi Linear Sederhana\\
+
+Untuk memulai, kami memperkenalkan dua kumpulan data "ironslag" dan "mamalia" sebagai yang pertama contoh regresi linier sederhana.Dalam Contoh 8.16 dan 8.17 empat model regresi yang berbeda cocok untuk DAAG::ironslag data.  Validasi silang jackknife menunjukkan bahwa yang terbaik model di antara keempatnya, berdasarkan MSE terkecil, adalah model kuadrat. Di dalam Pada bagian ini, kita meninjau kembali regresi linier sederhana (Model 1)\\
+
+Contoh 9.3 \\ 
+
+(model linier ironslag) Data DAAG::ironslag [190] memiliki 53 pengamatan pengukuran kadar besi berpasangan diperoleh dengan dua metode, kimia dan magnetik. (Lihat “besi.dat” di [134]). Plot pada Gambar 8.2 menunjukkan bahwa variabel berkorelasi positif. Sebagai langkah pertama, kami memasang a model regresi linier sederhana (9.2) ke data. Versi ggplot dariplot garis yang dipasang ditunjukkan pada Gambar 9.1 menampilkan pita kepercayaan untuk yang dipasang nilai dengan naungan.\\
+
+\begin{spverbatim}
+library(ggplot2)
+library(DAAG)
+L1 <- lm(magnetic ~ chemical, data=ironslag)
+cf3 <- round(L1$coeff, 3)
+cap <- paste("Fit: magnetic =", cf3[1], "+", cf3[2], "chemical")
+ggplot(data=ironslag, aes(chemical, magnetic)) +
+geom_point() + geom_smooth(method="lm") +
+ggtitle(cap)
+plot(L1, which=1:2) #residual plots
+\end{spverbatim}
+
+GAMBAR
+
+Plot residual (tidak ditampilkan) menunjukan bahwa varian kesalahan tidak konstan dan mengidentifikasi tiga titik dengan residu yang luar biasa besar. Berdasarkan analisis pendahuluan ini, akan menerapkan resampling kasus untuk mendapatkan estimasi bootstrap dari model parameter.\\
+
+Contoh 9.4\\
+
+(Data mamalia). Data mamalia ada di paket MASS, dan contohnya dibahas dalam[68,293] disini akan memodelkan ketergantungan antara ukuran otak dan ukuran tubuh. Logaritma ukuran otak dan tubuh sangat miring dengan beberapa pengamatan yang sangat besar, seperti yang terlihat pada ringkasan dibawah ini. Namun, kolerasi dan plot log-log (lihat pada gambar 9.2) mengungkapkan hubungan linier yang cukup kuat antara logaritma variabel, jadi menyesuaikan model regresi linier sederhana untuk memprediksi log (brainsize) yang diberikan log (bodysize).\\
+
+$log(Brainsize)=\beta0+\beta 1\times log(bodysize)+\varepsilon.$
+
+\begin{spverbatim}
+library(MASS)
+cor(log(mammals$body), log(mammals$brain))
+> cor(log(mammals$body), log(mammals$brain))
+[1] 0.9595748
+summary(mammals)
+body brain
+Min. : 0.005 Min. : 0.14
+1st Qu.: 0.600 1st Qu.: 4.25
+Median : 3.342 Median : 17.25
+Mean : 198.790 Mean : 283.13
+3rd Qu.: 48.203 3rd Qu.: 166.00
+Max. :6654.000 Max. :5712.00
+\end{spverbatim}
+
+Model regresi linier sederhana adalah (9.4). kami mencocokan model dengan kuadrat terkecil biasa menggunakan fungsi 1m:
+\begin{spverbatim}
+y <- log(mammals$brain)
+x <- log(mammals$body)
+L <- lm(y ~ x)
+\end{spverbatim}
+Dan dapatkan yang pas
+\begin{spverbatim}
+> L
+Coefficients:
+(Intercept)        x
+2.1348          0.7517
+\end{spverbatim}
+Koefisien yang diestimasi adalah $(\widehat{\beta_{0}},\widehat{\beta_{1}})$ dalam model log-log (9.4) dalam hal pengukuran asli, nilai prediksi adalah\\
+
+$\widehat{Brain}=e^{\widehat{\beta_0}}(body)^{\widehat{\beta_1}}=8.455.(body)^{0.752}.$\\
+
+Kami menggunakan ggplot untuk menampilkan plot garis yang pas:
+\begin{spverbatim}
+cap <- paste("Fit: log(brain) =", round(L$coeff[1],3),
+"+", round(L$coeff[2],3), "log(body)")
+ggplot(data=mammals, aes(x, y)) +
+geom_point() + geom_smooth(method="lm") +
+labs(x = "log(body)", y = "log(brain)", title = cap)
+\end{spverbatim}
+Garis pas pada gambar 9.2 tampaknya pas dengan data, dan diagnostik plot sisa yang ditampilkan oleh plot (L) (tidak ditampilkan) konsisten dengan model asumsi varisan kesalahan konstan.\\
+Model pas memiliki koefisien determinasi $R^{2}$ yang tinggi:
+\begin{lstlisting}
+> summary(L)$r.squared
+\end{lstlisting}
+\begin{spverbatim}
+[1] 0.9207837
+\end{spverbatim}
+
+Menunjukkan bahwa 92\% dari total variasi Y tentang rata-ratanya dijelaskan oleh model. Ada tiga pengamatan yang tidak biasa (32, 34, 35) yang diidentifikasi pada plot sisa pertama (tidak ditampilkan).
+Di sini analisis pendahuluan tidak menunjukkan bahwa model salah ditentukan atau ada penyimpangan dari asumsi model, jadi kami akan menggunakan contoh ini untuk mengilustrasikan resampling berbasis model di bagian selanjutnya.\\
+
+GAMBAR
+
+\subsection{Kasus Resampling}
+Kasus resampling adalah pendekatan yang cocok ketika kita tidak memiliki keyakinan yang kuat model itu ditentukan dengan benar, yang mungkin merupakan situasi yang paling umum dalam pemodelan. Dalam pendekatan ini, seseorang tidak mengasumsikan linearitas dari $E[Y |X = x]$ atau bahwa kesalahan memiliki varian konstan. Kasus resampling membutuhkan kesalahan mandiri.\\
+
+Kasus resampling: algoritma\\
+Dalam algoritma ini, pasangan $(x_{i},y_{i}), i=1,...,n$ adalah data sampel yang diamati.Untuk $r = 1$ ke R:
+
+1. Gambarlah n bilangan bulat secara acak $\left\{ \mathrm{i}_{1}^{*},...,\mathrm{i}_{n}^{*} \right\}$ dari $\left\{ 1,...,n \right\}$ dengan penggantian.\\
+2. Pasangan $\mathrm{x}_{j}^{*}=x_{i_{j}}*$ dan $\mathrm{y}_{j}^{*}=y_{i_{j}}*, j=1,...,n$\\
+3. Pasang model regresi kuadrat terkecil (OLS) biasa ke pasangan $\left( \mathrm{x}_{j}^{*},\mathrm{y}_{j}^{*} \right), j=1,...,n$ untuk mendapatkan perkiraan $\widehat{\beta0}^{(r)*}$ dan $\widehat{\beta1}^{(r)*}$ dan sisa kesalahan standar $\mathrm{s}_{r}^{*}$ untuk sampel ke- r.\\
+
+Contoh 9.5\\
+(data ironslag, kasus resampling). Untuk mengilustrasikan kembali kasus-metode pengambilan sampel, kami menerapkan resampling kasus ke regresi linier sederhana model (Model 1) dibahas dalam Contoh 8.16 dan 9.3.\\
+\begin{spverbatim}
+x <- ironslag$chemical
+y <- ironslag$magnetic
+m <- 2000
+n <- NROW(x)
+L1 <- lm(y ~ x) #estimate the model
+b0 <- L1$coeff[1]; b1 <- L1$coeff[2]
+
+## run kasus bootstrap
+out <- replicate(m, expr={
+    i <- sample(1:n, replace=TRUE, size=n)
+    xstar <- x[i]
+    ystar <- y[i]
+    Lb <- lm(ystar ~ xstar)
+    s <- summary(Lb)$sigma
+    c(Lb$coeff[1], slope=Lb\$coeff[2], s=s)
+})
+\end{spverbatim} 
+
+Putaran replikasi mengembalikan vektor dari tiga statistik pada masing-masing m literasi. Outputnya akan menjadi matriks 3 x m. Baris-barisnya adalah bootstrap penyadapan, lereng, dan perkiraan kesalahan standar. kami mengambil transpose dari matriks yang dihasilkan untuk memudahkan analisis,
+\begin{spverbatim}
+bootCases <- t(out)
+meanCases <- colMeans(bootCases)
+sdCases <- apply(bootCases, 2, "sd")
+
+> meanCases
+(Intercept) slope.xstar s
+1.3879135 0.9153462 4.2283183
+> sdCases
+(Intercept) slope.xstar s
+2.3744133 0.1229334 0.4737945
+\end{spverbatim}
+Perkiraan bias $\widehat{\beta0}$ dan $\widehat{\beta1}$ ditemukan dengan metode biasa untuk bootstrap.\\
+\begin{spverbatim}
+biasInt <- mean(bootCases[,1] - b0) #bias for intercept
+biasSlope <- mean(bootCases[,2] - b1) #bias for slope
+\end{spverbatim}
+Meringkas perkiraan model dan bootstrap:
+\begin{spverbatim}
+> rbind(estimate=c(b0, b1), bias=c(biasInt, biasSlope),
++ se=sdCases[1:2], cv=c(biasInt, cv=biasSlope)/sdCases[1:2])
+(Intercept) x
+estimate 1.402597403 0.9157699443
+bias -0.014683864 -0.0004237731
+se 2.374413269 0.1229334214
+cv -0.006184207 -0.0034471758
+\end{spverbatim}
+Koefisien variasi (cv) adalah bias/se. Ini mengukur bias dalam satuan/se. Menurut bootstrap, perkiraan parameter hampir tidak bias.\\
+
+Contoh 9.6 
+(Resampling kasus menggunakan fungsi boot). Contoh ini memberi solusi alternatif dengan menggunakan boot: : boot berfungsi untuk mengimplementasikan resampling kasus pada Contoh 9.5. Ingat dari Bab 8 bahwa fungsi boot membutuhkan argumen fungsi statistik.
+\begin{spverbatim}
+library(boot)
+m <- 2000
+stats <- function(dat, i) {
+x <- dat$chemical[i]
+y <- dat$magnetic[i]
+Lb <- lm(y ~ x)
+s <- summary(Lb)$sigma
+c(Lb$coeff[1], slope=Lb$coeff[2], s=s)
+}
+
+boot.out <- boot(ironslag, statistic=stats, R=2000)
+\end{spverbatim}
+Karena fungsi statistik mengembalikan vektor dari tiga statistik, maka nilai pengembalian boot memiliki tabel dengan tiga baris yang meringkas tiga boot statistik terikat.
+\begin{spverbatim}
+Bootstrap Statistics :
+     original          bias  std. error
+t1* 1.4025974 -2.210531e-02  2.342094
+t2* 0.9157699  2.350153e-05  0.121051
+t3* 4.3274616 -1.004868e-01  0.466549
+\end{spverbatim} 
+
+\begin{spverbatim}
+> boot.out\$t0
+(Intercept) slope.x s
+1.4025974 0.9157699 4.3274616
+\end{spverbatim}
+R Note 9.1\\ 
+
+Paket sapu [243] menyediakan metode untuk mengonversi ringkasan tabel menjadi "tibble", yang merupakan jenis bingkai data yang dipangkas. Format tibble mungkin sangat berguna setiap kali kita ingin mengekstrak komponen objek untuk analisis lebih lanjut atau merencanakan.\\
+\begin{spverbatim}
+> broom::tidy(boot.out)
+# A tibble: 3 x 4
+    term       statistic   bias      std.error
+    <chr>       <dbl>     <dbl>      <dbl>
+1 (Intercept)   1.40     -0.0221     2.34
+2 slope.x       0.916     0.0000235  0.121
+3 s             4.33     -0.100      0.467
+\end{spverbatim}
+Paket sapu termasuk metode rapi untuk banyak metode lainnya R. Lihat dokumentasi paket dan sketsa untuk detailnya. 
+
+Untuk mengakses lereng bootstrap, sesuai dengan indeks 2 atau t2*, ekstrak kolom 2 dari matriks ulangan t, yang merupakan matriks R×3. Misalnya, perkiraan se (kemiringan) adalah
+\begin{spverbatim}
+> sd(boot.out\$t[,2])
+[1] 0.121051
+\end{spverbatim}
+Bergantian, menggunakan rapi membuatnya lebih mudah untuk mengakses tabel perkiraan:
+\begin{spverbatim}
+> boottbl <- broom::tidy(boot.out)
+> boottbl\$std.error[2]
+[1] 0.121051
+\end{spverbatim}
+Sebuah histogram lereng bootstrap ditunjukkan pada Gambar 9.3, dengan kemiringan yang diamati ditunjukkan dengan garis vertikal.
+\begin{spverbatim}
+MASS::truehist(boot.out$t[ ,2], main="", xlab="slopes")
+abline(v = boot.out$t0[2], lwd=2)
+\end{spverbatim}
+Estimasi parameter bootstrap sekarang dapat diterapkan untuk mendapatkan boot- interval kepercayaan tali dan uji hipotesis untuk perkiraan $\widehat{\beta}$ tanpa membutuhkan asumsi biasa dari uji t parametrik yang disediakan oleh metode Im ringkasan.
+Dalam contoh ini, kami telah mencatat bahwa varian kesalahan tidak tampaknya konstan, yang merupakan salah satu kondisi yang diasumsikan untuk parametrik inferensi tentang perkiraan berdasarkan distribusi t. Mungkin lebih handal untuk menerapkan pendekatan bootstrap untuk inferensi dalam kasus ini. Untuk memeriksa apakah regresi itu signifikan, misalnya, kami membangun kepercayaan 95% interval dence untuk lereng. Ingatlah bahwa estimasi poin kami adalah $\widehat{\beta1}= 0,91577$.
+
+\begin{spverbatim}
+boot.ci(boot.out, index=2, type=c("norm","perc","basic","bca"))
+\end{spverbatim}
+Keempat interval bootstrap di bawah ini sangat cocok, dan tidak ada satupun mereka mengandung nol, jadi kita dapat menyimpulkan pada $\alpha=0.05$ bahwa ada yang signifikan
+hubungan linier antara variabel kimia dan magnetik.
+\begin{spverbatim}
+BOOTSTRAP CONFIDENCE INTERVAL CALCULATIONS
+Based on 2000 bootstrap replicates
+CALL :
+boot.ci(boot.out = boot.out, type = c("norm", "perc", "basic",
+"bca"), index = 2)
+Intervals :
+Level     Normal            Basic
+95%   ( 0.6785, 1.1530 ) ( 0.6729, 1.1467 )
+Level    Percentile         BCa
+95%   ( 0.6849, 1.1587 ) ( 0.6993, 1.1809 )
+Calculations and Intervals on Original Scale
+\end{spverbatim}  
+
+\subsection{Error dari Resampling (Berbasis Model)}
+Pengambilan sampel berbasis model didasarkan pada kesalahan pengambilan ulang atau residual dari model regresi yang cocok. Terdapat beberapa jenis residual. Residual yang digunakan di dalam bab ini dirangkum dalam Tabel 9.1.
+
+Residual mentah dari model regresi linear sederhana (9.2) adalah 
+
+\begin{equation*}
+    e_{i} = y_{i} - \widehat{y_{i}},     i = 1,...,n.
+\end{equation*}
+
+Kesalahan standar residual tergantung pada pengaruh nilai $h_{i}$ , dimana $h_{i} = h_{ii}$ adalah elemen diagonal dari
+
+\begin{equation*}
+    h_{jk} = \frac{1}{n} + \frac{(x_{j}-\bar{x})(x_{k}-\bar{x}))}{SS_{x}}
+\end{equation*}
+    
+Kesalahan standar dari residual ke-i adalah $se(e_{i})  = \sqrt{MSE(1-h_{i})}$ . Kesalahan standar dari residual tidak konstan terhadap x . Karena metode resampling error menarik residual secara acak, residual seharusnya dinormalisasi untuk memiliki varian yang sama. 
+
+Residual standar dinormalisasi untuk memiliki 1 varians untuk setiap i dengan membagi residual mentah dengan $se(e_{i}) = \sqrt{MSE(1-h_{i})}$ . Perhatikan bahwa ada dua fungsi R yang standardized residual, rstandar dan rstudents. Kedua fungsi ini menormalkan residual mentah agar memiliki 1 varians, tetapi dengan metode yang berbeda.Fungsi rstandard menggunakan MSE, estimesi regresi dari varian kesalahan, dan rstudents menggunakan leave-one-out dari varian kesalahan.
+
+Nilai hat $h_{i}$ dapat diekstraksi dari objek model yang dipasang menggunakan fungsi nilai hat. Root mean squared error atau RMSE adalah akar kuadrat dari MSE, di mana, untuk model dengan prediktor p, 
+
+\begin{equation*}
+    MSE = \widehat{\sigma }^{2} = \frac{1}{n-p}\sum_{i=1}^{n}e_{i}^{2}
+\end{equation*}
+
+adalah estimasi varian kesalahan.
+
+Namun, untuk mendapatkan estimasi bootstrap dari kesalahan standar, kita tidak ingin mengubah residual sehingga variannya adalah 1, melainkan untuk mengubah residual sehingga variannya konstan. Residu yang dimodifikasi dinormalisasi oleh nilai leverage seperti residual standar, tetapi tidak dibagi oleh $\sqrt{MSE}$ . Artinya, residu yang dimodifikasi adalah
+
+\begin{equation*}
+    \frac{e_{i}}{\sqrt{1-h_{ii}}},    i = 1,...,n.
+\end{equation*}
+
+Residu yang dimodifikasi dinormalisasi untuk memiliki varians konstan, bukan varians unit. Residu yang dimodifikasi dapat dihitung dengan mengalikan residual yang telah dipelajari dengan $RMSE = \sqrt{MSE}$ .
+
+\textbf{Error dari resampling : algoritma}
+
+Algoritma ini berlaku untuk model regresi linier sederhana (9.2) atau model regresi berganda (9.3) untuk memprediksi variabel respons Y dari p prediktor $X_{1},...,X_{p}$.
+
+1. Sesuaikan model regresi dengan kuadrat terkecil biasa (OLS) ke data yang diamati, untuk memperoleh estimasi parameter $\widehat{\beta } = (\widehat{\beta _{0}}, \widehat{\beta _{1}},...,\widehat{\beta _{p}})^{2},\widehat{\sigma }_{e}^{2}$ dan nilai yang sesuai $\widehat{y}_{1},...,\widehat{y}_{n}$.
+
+\textbf{TABLE 9.1} : Beberapa Jenis Residual dan Cara Menghitungnya dari Objek L yang Dipasang
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c c c|}
+
+\hline\hline
+Nama & Definisi & Fungsi R \\
+\hline
+Residual mentah & $e_{i} = y_{i} - \widehat{y_{i}}$ & Lresid\\
+
+& $h_{i} = h_{ii}$ & nilai hat (L)\\
+
+& $\widehat{\sigma} = RMSE = \sqrt{MSE}$ & ringkasan (L) sigma\\
+
+Residual yang dimodifikasi & $\frac{e_{i}}{1-h_{i}}$ & rstandart (L, sd=1)\\
+
+Residual standar & $\frac{e_{i}}{\widehat{s}(e_{i})} = \frac{e_{i}}{\sqrt{MSE(1-h_{i})}}$ & rstandart(L)\\
+
+\hline\hline
+\end{tabular}
+\end{table}
+
+2. Hitung residual mentah $e_{i} = y_{i} - \widehat{y_{i}}$ dan residual yang dimodifikasi ${e_{i}}' = e_{i}/\sqrt{1-h_{i}}, i = 1,...,n$.
+
+3. Pusatkan residual yang dimodifikasi: $r_{i} = {e_{i}}'- \bar{{e_{i}}'}$.
+
+4. Inisialisasi R, jumlah replikasi bootstrap, dan matrix B $R \times (p+2)$ untuk menyimpan replikasi bootstrap.
+
+5. Untuk setiap replikasi bootstrap $k = 1,...,R:$ 
+
+    (a) Untuk $j=1$ sampai $n:$ 
+    
+        i. Tetapkan $x_{j}^{*} = x_{j}.$
+        
+        ii. Pengambilan sampel secara acak (dengan penggantian) $\varepsilon _{j}^{*(k)}$ dari $\begin{Bmatrix}
+        r_{1},...,r_{n}
+        \end{Bmatrix}.$
+
+        iii. Tetapkan $y_{j}^{*(k)} = \widehat{\beta }_{0} + \widehat{\beta _{1}}x_{j}^{*} + \varepsilon _{j}^{*(k)} =\widehat{y_{j}} + \varepsilon _{j}^{*(k)}.$ 
+
+    (b) Sesuaikan model regresi OLS dengan n pasangan  
+     $\begin{Bmatrix}
+        \bigl(\begin{smallmatrix}
+        x_{j}^{*}, y _{j}^{*(k)}
+        \end{smallmatrix}\bigr)
+    \end{Bmatrix}$
+        mendapatkan estimasi bootstrap ke-$k$ $\widehat{\beta } ^{(k)}$ dan residual $se$ $s^{k}$ untuk sampel ke-$k$.
+
+    (C) Kembalikan vektor estimasi parameter $\bigl(\begin{smallmatrix}
+        \widehat{\beta }^{(k)}, s^{(k)}
+        \end{smallmatrix}\bigr)$ 
+        untuk sampel bootstrap ke-$k$, menyimpan perkiraan dalam baris k dari matriks keluaran $B$.
+
+\textbf{Contoh 9.7} (Resampling error: data mammals). Metode sederhana untuk menghitung residual yang dimodifikasi adalah dengan menetapkan sd=1 dalam rstandard. Residual yang dimodifikasi harus dipusatkan dengan mengurangkan rata-ratanya. Model pas dari Contoh 9.4 disimpan di objek L.
+
+\begin{spverbatim}
+  m.resid <- rstandard(L, sd = 1)
+  r <- m.resid - mean(m.resid)
+
+\end{spverbatim}
+
+Kemudian sampel bootstrap diambil dengan penggantian dari tengah residual yang dimodifikasi.
+
+\begin{spverbatim}
+    m <- 1000; n <- NROW(x)
+    estsErr <- replicate(m, expr={
+    estar <- sample(r, replace=TRUE, size=n)
+    ystar <- L$fitted.values + estar
+    Lb <- lm(ystar ~ x)
+    s <- summary(Lb)$sigma
+    c(b0=Lb$coeff[1], b1=Lb$coeff[2], s=s)
+})
+ests <- t(estsErr)
+
+\end{spverbatim}
+
+Statistik ringkasan untuk estimasi bootstrap:
+
+\begin{spverbatim}
+> summary(ests)
+b0.(Intercept)      b1.x                s
+Min.    :1.866  Min.   :0.6509  Min.    :0.4984
+1st Qu. :2.074  1st Qu.:0.7346  1st Qu. :0.6478
+Median  :2.133  Median :0.7530  Median  :0.6956
+Mean    :2.135  Mean   :0.7534  Mean    :0.6937
+3rd Qu. :2.198  3rd Qu.:0.7729  3rd Qu. :0.7380
+Max.    :2.447  Max.   :0.8538  Max.    :0.9575
+\end{spverbatim}
+
+Dari tabel ringkasan dapat mengamati bahwa rata-rata dan median kira-kira sama untuk kedua koefisien, dan kuartil kira-kira simestris di sekitar median untuk keduanya. ini konsisten dengan distribusi simetris dari ulang.
+
+Dengan replikasi bootstrap kita bisa belajar tentang distribusi sampling estimasi parameter, seperti estimasi kesalahan standar $se \bigl(\begin{smallmatrix}
+\widehat{\beta}_{j}
+\end{smallmatrix}\bigr)$ untuk masing-masing $\beta _{j}$, dan ukuran pengaruh tertentu. jika modelnya benar, kita harus menduga bahwa penaksir kuadrat terkecil bisa dari kesalahan standar $\widehat{\beta }_{0}$ dan $\widehat{\beta }_{1}$ adalah dekat keperkiraan kesalahan yang diperoleh oleh bootstarp.
+
+Secara teoritis, jika model regresi linier sederhana (9.2) benar,
+\begin{equation*}
+    se \bigl(\begin{smallmatrix}
+\widehat{\beta }_{1}
+\end{smallmatrix}\bigr) = \bigl(\begin{smallmatrix}
+\frac{\sigma ^{2}}{SS_{x}}
+\end{smallmatrix}\bigr)^{\frac{1}{2}}.
+\end{equation*}
+
+Untuk intersepsi,
+\begin{equation*}
+    \sigma \bigl(\begin{smallmatrix}
+\widehat{\beta }_{0}
+\end{smallmatrix}\bigr) = \sigma \begin{bmatrix}
+\frac{1}{n}+ \frac{\bar{x}^{2}}{\sum_{i=1}^{n}\bigl(\begin{smallmatrix}
+X_{i}-\bar{X}
+\end{smallmatrix}\bigr)^{2}}
+\end{bmatrix}.
+\end{equation*}
+
+\textbf{Contoh 9.8} (Resampling Error, lanjutan). Untuk model linier log-log sesuai dengan data mammals pada Contoh 9.4, replikasi bootstrap berbasis model dari Contoh 9.7 menghasilkan perkiraan berikut $se \bigl(\begin{smallmatrix}
+\widehat{\beta }_{1}
+\end{smallmatrix}\bigr)$:
+
+\begin{spverbatim}
+> sd(ests[,2])
+[1] 0.02870934
+\end{spverbatim}
+
+Estimasi bootstrap $se$ untuk kemiringan harus mendekati estimasi kuadrat terkecil $\widehat{se}\bigl(\begin{smallmatrix}
+\beta_{1} 
+\end{smallmatrix}\bigr)$ , yang dapat dihitung dengan:
+
+\begin{spverbatim}
+s <- summary(L)\$sigma
+SSx <- (n - 1) * var(x)
+se.beta1 <- sqrt(s^2 / SSx)
+> se.beta1
+[1] 0.02846356
+\end{spverbatim}
+
+Kedua perkiraan itu cukup dekat: $\widehat{se}_{boot}  \begin{pmatrix}
+\widehat{B}_{1}
+\end{pmatrix} = 0.028709$ dan $\widehat{se}_{reg}  \begin{pmatrix}
+\widehat{B}_{1}
+\end{pmatrix} = 0.028464$.
+
+Untuk membandingkan estimasi intersep $se  \begin{pmatrix}
+\widehat{B}_{0}
+\end{pmatrix}$, kita menghitung regresi dan estimasi bootstrap :
+
+\begin{spverbatim}
+> s * sqrt(1/n + mean(x)^2 / SSx)
+[1] 0.09604339
+> sd(ests[,1])
+[1] 0.09603022
+\end{spverbatim}
+
+yang juga sangat setuju.
+
+Cara yang lebih mudah untuk memperoleh estimasi regresi dari standart error $\widehat{B}_{j}$ adalah melalui ringkasan. metode lm.Tabel prediktor dalam komponen \$coefficients dari nilai ringkasan yang dikembalikan.
+
+\begin{spverbatim}
+betas <- summary(L)\$coeff
+> betas
+            Estimate    Std. Error  t value         Pr(>|t|)
+(Intercept) 2.1347887   0.09604339  22.22734    1.183207e-30
+x           0.7516859   0.02846356  26.40871    9.835792e-35
+\end{spverbatim}
+
+Untuk mengekstrak hanya standart error, misalnya:
+
+\begin{spverbatim}
+> betas[, "Std. Error"]
+(Intercept)         x
+0.09604339  0.02846356
+\end{spverbatim}
+
+Di sini sekali lagi sangat sesuai menggunakan tidy untuk mengkonversi tabel ini menjadi tibble
+
+\begin{spverbatim}
+> broom::tidy(summary(L))
+# A tibble: 2 x 5
+    term        estimate    std.error   statistic     p.value
+    <chr>       <dbl>           <dbl>       <dbl>       <dbl>
+1 (Intercept)   2.13        0.0960          22.2      1.18e-30
+2 x             0.752       0.0285          26.4      9.84e-35
+\end{spverbatim}
+
+Sehingga standart error sederhananya:
+
+\begin{spverbatim}
+> broom::tidy(summary(L))\$std.error
+[1] 0.09604339 0.02846356
+
+\end{spverbatim}
+
+\textbf{Contoh 9.9} (Resampling berbasis model dengan fungsi boot). Metode resampling error berbasis model dapat diimplementasikan menggunakan fungsi boot, tetapi estimasi model asli dan semua perhitungan pada residual harus dihitung terlebih dahulu, karena data yang akan dijadikan sampel dalam pendekatan ini adalah residual yang dimodifikasi.
+
+Lihat model yang cocok untuk data $mammals$ pada Contoh 9.4 dan 9.7. Fungsi boot menyediakan kerangka data yang akan diambil sampelnya (residual yang dimodifikasi) dan vektor indeks untuk setiap sampel. Fungsi boot juga harus meneruskan nilai $x$ (prediktor) dan nilai pas $\widehat{y}$. Salah satu cara untuk melakukan ini adalah membuat kerangka data dengan semua nilai yang diperlukan. Pada fungsi statistik berikut, kita akan menduga kerangka data dat yang berisi ketiga variabel ini. Opsi lainnya adalah set $x=TRUE$, di lm dan pass objek lm yang dikembalikan sebagai argumen tambahan.
+
+\begin{spverbatim}
+regstats <- function(dat, i) {
+  #dat is a data frame (r, x, yhat)
+  #r are the modified centered residuals, yhat are the fits
+  ystar <- dat$yhat[i] + dat$r[i]
+  xstar <- dat$x[i]
+  Lnew <- lm(ystar ~ xstar)
+  Lnew$coefficients
+}
+\end{spverbatim}
+
+Sekarang, buat kerangka data dengan nilai yang diperlukan untuk regstats fungsi pengambilan sampel bootstrap kita.
+
+\begin{spverbatim}
+    y <- log(mammals$brain)
+    x <- log(mammals$body)
+    L <- lm(y ~ x)
+    r <- rstandard(L, sd=1)
+    r <- r - mean(r)
+    df <- data.frame(r=r, x=x, yhat=L\$fitted)
+\end{spverbatim}
+
+Berikut adalah beberapa baris pertama dari kerangka data kita:
+
+\begin{spverbatim}
+> head(df)
+              r            x        yhat
+1   0.75110866     1.2193539    3.051360
+2   1.17241445    -0.7339692    1.583074
+3  -0.27005440     0.3001046    2.360373
+4  -0.72358079     6.1420374    6.751672
+5  -0.05177026     3.5926438    4.835329
+6   0.11677623     3.3199873    4.630376
+\end{spverbatim}
+
+Akhirnya kita menjalankan bootstrap dengan R=2000, yang cukup besar untuk mengestimasi bias.
+
+\begin{spverbatim}
+    boot.obj <- boot(data=df, statistic=regstats, R=2000)
+
+\end{spverbatim}
+
+Nilai yang dikembalikan dari objek bootstrap akan berisi estimasi awal di boot. obj$t0 dan intersep bootstrap dan kemiringan dalam matriks boot.obj$t. Lihat Contoh 9.6 untuk detail lebih lanjut tentang bagaimana boot mengembalikan estimasi array.Untuk analisis lebih lanjut, direkomendasikan tidy.
+
+\begin{spverbatim}
+    > broom::tidy(boot.obj)
+    # A tibble: 2 x 4
+      term statistic bias std.error
+      <chr> <dbl> <dbl> <dbl>
+    1 (Intercept) 2.13 0.00231 0.0926
+    2 xstar 0.752 -0.000484 0.0238 
+\end{spverbatim}
+
+Analisis output bootstrap akan serupa dengan Contoh 9.7 dan 9.8 setelah replikasi diekstraksi dari boot.obj\$t atau hasil dari tidy.
+
+\section{Pengaruh}
+Nilai pengaruh empiris dalam jackknife-after-bootstrap adalah kuantitas empiris yang mengukur perbedaan antara setiap replikasi jackknife dan statistik yang diamati. Ada beberapa metode untuk mengestimasi nilai pengaruh. Satu pendekatan menggunakan perbedaan jackknife biasa $\widehat{\theta }_{\left ( i \right )} - \widehat{\theta }, i = 1, ... , n$. Fungsi empinf dalam paket boot menghitung nilai pengaruh empiris dengan empat metode. Fungsi jack.after.boot dalam paket boot [36] menghasilkan plot nilai pengaruh empiris.Plot dapat digunakan sebagai alat diagnostik untuk melihat efek atau pengaruh pengamatan individu. Lihat [68, Ch. 3] untuk contoh dan diskusi tentang bagaimana menafsirkan plot.
+
+
+\subsection{Nilai Pengaruh Empiris untuk Statistik}
+Paket boot menyediakan fungsi empinf yang menghitung secara empiris
+nilai pengaruh untuk statistik dengan pilihan empat metode. Metode “biasa
+pisau lipat” (type = "jack") sesuai dengan pisau lipat.\\
+Biarkan boot.out menjadi nilai balik dari penggunaan bootstrap biasa
+boot dengan argumen default. Ketika empinf menghitung nilai pengaruh dengan
+boot.out sebagai argumen pertamanya, dan dengan type = "jack", nilai "pisau lipat biasa" dihitung dengan rumus berikut:\\
+$(n-1)(\widehat{\theta}-\widehat{\theta}),       i=1,...,n.$\\
+Jadi,biasjack adalah rata-rata vektor di 9.5. Pisau lipat satu-keluar ulangan oleh karena itu
+$\widehat{\theta}_{i}=\widehat{\theta }-\frac{infl_{jack}[i]}{n-1}$\\
+
+Contoh 9.10\\
+
+(Nilai pengaruh empiris untuk statistik patch ratio).
+Untuk mendapatkan nilai pengaruh empiris untuk statistik rasio patch menggunakan boot::empinf pertama kita jalankan bootstrap, lalu gunakan empinf pada hasilnya dengan ketik = "jack".\\
+\begin{spverbatim}
+library(boot)
+theta_boot <- function(dat, ind) {
+# function to compute the patch ratio statistic
+mean(dat[ind, ]$y) / mean(dat[ind, ]$z)
+}
+boot.out <- boot(patch, theta_boot, R = 2000)
+infl <- empinf(boot.out, type = "jack")
+jack <- theta.hat - infl / (nrow(patch) - 1)
+The influence values and the corresponding jackknife replicates are:
+> rbind(infl, jack)
+[,1] [,2] [,3] [,4]
+infl -0.09931275 0.4003552 -0.3489500 0.4280096
+jack -0.05711856 -0.1284997 -0.0214561 -0.1324503
+[,5] [,6] [,7] [,8]
+infl -0.14445000 0.08919352 -0.04510179 -0.34376379
+jack -0.05067038 -0.08404803 -0.06486298 -0.02219698
+\end{spverbatim}
+
+Nilai pengaruh adalah fungsi linier dari replikasi pisau berlipat, jadi baik
+dari mereka dapat digunakan untuk mengukur pengaruh.
+
+\subsection{Plot Jackknife Setelah Bootstrap}
+Fungsi jack.after.boot(boot) menghitung pengaruh jackknife
+Nilai dari objek output bootstrap menggunakan fungsi dan tampilan EMPREF plot jackknife setelah bootstrap.
+Contoh 9.11\\ 
+
+(plot Jackknife setelah bootstrap). Gunakan fungsi boot untuk bootstrap statistik rasio patch (lihat Contoh 9.10), lalu tampilkan jackknife setelah bootstrap plot nilai pengaruh.\\
+Dalam jack setelah boot di bawah ini, argumen useJ=TRUE menunjukkan bahwa nilai pengaruh jackknife yang dihitung dari replikasi bootstrap akan digunakan (defaultnya adalah FALSE). Jika tidak, nilai pengaruh empiris akan digunakan. Stinf argumen menunjukkan apakah akan menstandarkan nilai jackknife atau tidak sebelum merencanakan (defaultnya adalah \begin{spverbatim}
+jack.after.boot(boot.out, useJ=TRUE, stinf=FALSE)
+\end{spverbatim}
+Interpretasi Plot
+
+Pada sumbu vertikal adalah persentil dari replikasi $T^{*}-t$. Pada sumbu horizontal adalah nilai pengaruh jackknife. Angka pengamatan ditunjukkan di bawah poin. Nilai jackknife yang diplot di atas adalah $(n - 1)$ *(mean(J)-J) di mana J adalah vektor perkiraan jackknife-after-bootstrap.
+Sebagai perbandingan, kita dapat menghitung: 
+\begin{spverbatim}
+n <- NROW(dat)
+J <- numeric(n)
+b.freq <- boot.array(boot.obj)
+theta.b <- boot.obj\$t
+
+for (i in 1:n) {
+    keep <- which(b.freq[ ,i] == 0)
+    J[i] <- mean(theta.b[keep])
+}
+
+# the jackknife influence values
+J
+rbind((1:n), (n - 1) * (mean(J) - J))
+\end{spverbatim}
+Plot ini lebih mudah ditafsirkan jika nilai standar diplot, sebagai ditunjukkan pada Gambar 9.5, yang merupakan default untuk jack.after.boot.
+\begin{spverbatim}
+jack.after.boot(boot.out, useJ=TRUE, stinf=TRUE)
+\end{spverbatim}
+Pada Gambar 9.5, tidak satu pun dari pengamatan ini yang tampaknya memiliki nilai jackknife standar yang ekstrem. 
+  
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Subbab 1}
+Misalkan $X_1,X_2,...,X_n$ adalah sampel random dari distribusi dengan parameter $\theta$ yang tidak diketahui. Statistik $Y=u(X_1,X_2,...,X_n)$ disebut dengan statistik cukup untuk $\theta$, jika distribusi bersyarat dari $X_1,X_2,...,X_n$ diberikan $Y$ tidak bergantung pada parameter $\theta$
+
+\begin{equation*}
+    f_{X|s}(x_1,x_2,...,x_n)=\left\{\begin{matrix}
+f(x_1,x_2,...,x_n;\theta), jika \ \sigma (x_1,x_2,...,x_n)=s &  & \\ 
+0, yang \ lainnya&  & 
+\end{matrix}\right.
+\end{equation*}
+
+
+\subsection{Subbab 2}
+Misalkan $X=(X_1,X_2,...,X_n)$ mempunyai fungsi kepadatan peluang(fkp) bersama $f(x,\theta)$ dimana $\theta$ merupakan vector parameter. Dan misalkan $S=(S_1,...,S_k)$ adalah statistika berdimensi $k$ maka $S_1,...,S_k$ merupakan statatistika cukup bersama untuk $\theta$, jika untuk sembarang vector statistika T yang lain, fungsi Kepadatan peluang(fkp) bersama T dengan syarat $S=s$, dinotasikan $f_{T|s}(t)$ tidak tergantung dari $\theta$. dalam kasus dimensi satu $S$ dinamakan statik cukup untuk $\theta$. 
+
+suatu himpunan statistik dikatakan sebagai himpunan statistic cukup minimal jika anggota anggotanya adalah statistic cukup gabungan untuk parameter dan jika statistic statistic tersebut merupakan fungsi dari himpunan statistic cukup gabungan yang lain. 
+
+
+\end{document}
